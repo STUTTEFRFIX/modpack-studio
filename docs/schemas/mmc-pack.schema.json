@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/mmc-pack.schema.json",
+  "title": "MultiMC / Prism mmc-pack.json",
+  "description": "MultiMC / Prism 实例组件清单。实例目录还需要 instance.cfg。",
+  "type": "object",
+  "required": ["formatVersion", "components"],
+  "properties": {
+    "formatVersion": {
+      "const": 1,
+      "description": "当前只有版本 1"
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["uid"],
+        "properties": {
+          "uid": {
+            "type": "string",
+            "minLength": 1,
+            "description": "组件 ID，如 net.minecraft、net.minecraftforge、net.fabricmc.fabric-loader"
+          },
+          "version": {
+            "type": "string",
+            "description": "组件版本；某些组件由 patches 提供版本，可为空"
+          },
+          "important": {
+            "type": "boolean",
+            "description": "重要组件，用户不能移除"
+          },
+          "dependencyOnly": {
+            "type": "boolean",
+            "description": "仅作为依赖，不在 UI 显示"
+          },
+          "cachedName": {
+            "type": "string"
+          },
+          "cachedVersion": {
+            "type": "string"
+          },
+          "cachedRequires": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "uid": {
+                  "type": "string"
+                },
+                "equals": {
+                  "type": "string"
+                },
+                "suggests": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

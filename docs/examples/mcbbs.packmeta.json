@@ -1,0 +1,45 @@
+{
+  "manifestType": "minecraftModpack",
+  "manifestVersion": 2,
+  "name": "Example MCBBS Pack",
+  "version": "1.0.0",
+  "author": "ExampleAuthor",
+  "description": "A small example pack.",
+  "fileApi": "https://example.com/files",
+  "url": "https://example.com/pack",
+  "forceUpdate": false,
+  "origin": [
+    { "type": "curseforge", "id": 123456 }
+  ],
+  "addons": [
+    { "id": "game", "version": "1.20.1" },
+    { "id": "forge", "version": "47.2.0" }
+  ],
+  "libraries": [],
+  "files": [
+    {
+      "type": "addon",
+      "path": "mods/example.jar",
+      "hash": "2222222222222222222222222222222222222222",
+      "force": true
+    },
+    {
+      "type": "curse",
+      "projectID": 238222,
+      "fileID": 4593547,
+      "fileName": "jei-1.20.1-forge-15.2.0.27.jar",
+      "url": "",
+      "force": false
+    }
+  ],
+  "settings": {
+    "install_mods": true,
+    "install_resourcepack": true
+  },
+  "launchInfo": {
+    "minMemory": 2048,
+    "supportJava": [17, 21],
+    "launchArgument": [],
+    "javaArgument": ["-XX:+UseG1GC"]
+  }
+}

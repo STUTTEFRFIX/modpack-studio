@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/curseforge.manifest.schema.json",
+  "title": "CurseForge manifest.json",
+  "description": "CurseForge 整合包清单。事实标准，无官方公开 JSON Schema；依据 CurseForge App、HMCL、ATLauncher 等实现归纳。fileName/url/hashes 为 HMCL 扩展字段。",
+  "type": "object",
+  "required": [
+    "manifestType",
+    "manifestVersion",
+    "name",
+    "version",
+    "author",
+    "minecraft",
+    "files"
+  ],
+  "properties": {
+    "manifestType": {
+      "const": "minecraftModpack",
+      "description": "固定值"
+    },
+    "manifestVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "当前为 1"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "author": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "websiteUrl": {
+      "type": "string",
+      "format": "uri-reference"
+    },
+    "projectID": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "CurseForge 项目 ID（发布信息，可选）"
+    },
+    "fileID": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "CurseForge 文件 ID（发布信息，可选）"
+    },
+    "curse": {
+      "type": "string",
+      "description": "旧字段，部分导出器保留"
+    },
+    "minecraft": {
+      "type": "object",
+      "required": ["version", "modLoaders"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Minecraft 版本，如 1.20.1"
+        },
+        "modLoaders": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+-",
+                "description": "加载器 ID，如 forge-47.2.0、fabric-0.15.11、neoforge-20.4.237、quilt-0.23.1"
+              },
+              "primary": {
+                "type": "boolean",
+                "description": "推荐加载器；多个时取 primary=true 的项"
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "files": {
+      "type": "array",
+      "description": "远端文件列表，可为空（全部内容在 overrides 中）",
+      "items": {
+        "type": "object",
+        "required": ["projectID", "fileID"],
+        "properties": {
+          "projectID": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "fileID": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "required": {
+            "type": "boolean",
+            "default": true,
+            "description": "是否必需；缺失时各实现默认值不一致，导出时应显式写"
+          },
+          "fileName": {
+            "type": "string",
+            "description": "HMCL 扩展：用于拼 CDN URL"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "HMCL 扩展：显式下载地址"
+          },
+          "hashes": {
+            "type": "object",
+            "description": "HMCL 扩展：哈希表，常见键 sha1/sha256/sha512/md5",
+            "additionalProperties": {
+              "type": ["string", "null"]
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "overrides": {
+      "type": "string",
+      "default": "overrides",
+      "description": "覆盖目录名，默认 overrides"
+    }
+  },
+  "additionalProperties": true
+}

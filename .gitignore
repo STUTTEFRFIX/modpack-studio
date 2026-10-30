@@ -1,0 +1,33 @@
+# Build outputs
+/bin/
+/dist/
+/android/build/
+/android/assets/graph.html
+/experiments/graph-demo/graph.html
+/experiments/graph-demo/packs/
+/experiments/graph-demo/*.png
+/experiments/graph-demo/__pycache__/
+
+# Downloaded packs / archives
+*.mrpack
+*.apk
+*.idsig
+*.exe
+
+# Local Android SDK jar / signing material
+/tools/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Local signing
+/android/*.keystore
+
+# Generated desktop asset (embedded from internal/webui)
+/cmd/modpack-studio-desktop/graph.html

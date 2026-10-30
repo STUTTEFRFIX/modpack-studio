@@ -1,0 +1,1712 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Create Live 5 · 模组关系图</title>
+<style>
+  :root{
+    --bg:#070b14; --panel:#0f172a; --panel2:#111c33; --border:#1e293b;
+    --text:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; --gold:#fbbf24;
+    --req:#94a3b8; --opt:#38bdf8; --inc:#ef4444; --emb:#a78bfa;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;
+    overflow:hidden;overscroll-behavior:none}
+  button,input{font:inherit}
+  #app{display:flex;flex-direction:column;height:100vh}
+  header{display:flex;align-items:center;gap:14px;padding:10px 14px;border-bottom:1px solid var(--border);
+    background:rgba(9,14,26,.92);backdrop-filter:blur(8px);z-index:20}
+  .brand{min-width:190px}
+  .brand h1{margin:0;font-size:16px;line-height:1.2;font-weight:700;letter-spacing:.2px}
+  .brand .sub{font-size:11px;color:var(--muted);margin-top:3px;white-space:nowrap}
+  .search{flex:1;max-width:420px;position:relative}
+  .search input{width:100%;padding:8px 12px 8px 32px;border-radius:9px;border:1px solid var(--border);
+    background:var(--panel);color:var(--text);outline:none}
+  .search input:focus{border-color:var(--accent)}
+  .search::before{content:"⌕";position:absolute;left:11px;top:6px;color:var(--muted);font-size:16px}
+  .actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .btn{padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--panel);
+    color:var(--text);cursor:pointer;font-size:12px;white-space:nowrap}
+  .btn:hover{border-color:#334155;background:var(--panel2)}
+  .btn.active{border-color:var(--accent);color:var(--accent);background:rgba(56,189,248,.08)}
+  .btn.gold{border-color:rgba(251,191,36,.5);color:var(--gold)}
+  main{flex:1;display:grid;grid-template-columns:238px 1fr 336px;min-height:0;position:relative}
+  aside{background:var(--panel);overflow:auto;min-height:0}
+  #left{border-right:1px solid var(--border);padding:10px 10px 30px}
+  #detail{border-left:1px solid var(--border);padding:12px 12px 40px}
+  .panel{margin-bottom:14px}
+  .panel h2{margin:0 0 7px;font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+  .cat-row,.edge-row{display:flex;align-items:center;gap:8px;padding:4px 5px;border-radius:6px;font-size:12px;cursor:pointer;user-select:none}
+  .cat-row:hover,.edge-row:hover{background:var(--panel2)}
+  .viewgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:7px}
+  .viewgrid .btn{padding:6px 6px;font-size:11px}
+  .viewgrid .btn.active{border-color:var(--accent);color:var(--accent);background:rgba(56,189,248,.08)}
+  .cat-row input,.edge-row input{accent-color:var(--accent);margin:0}
+  .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 0 2px rgba(255,255,255,.06)}
+  .count{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
+  .line{width:18px;height:0;border-top:2px solid var(--req);flex:0 0 auto}
+  .line.opt{border-top:2px dashed var(--opt)}
+  .line.inc{border-top:2px dashed var(--inc)}
+  .line.emb{border-top:2px dotted var(--emb)}
+  #stats{font-size:12px;line-height:1.7;color:var(--muted)}
+  #stats b{color:var(--text);font-weight:600}
+  #stats .hubline{color:var(--text);cursor:pointer;padding:1px 0;display:flex;gap:6px;align-items:baseline}
+  #stats .hubline:hover{color:var(--accent)}
+  #stats .hubline span:last-child{margin-left:auto;color:var(--muted);font-size:11px}
+  #stage{position:relative;min-width:0;min-height:0;overflow:hidden;
+    background:
+      radial-gradient(circle at 50% 43%, rgba(56,189,248,.07), transparent 42%),
+      radial-gradient(circle at 18% 82%, rgba(168,85,247,.05), transparent 36%),
+      linear-gradient(rgba(148,163,184,.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148,163,184,.045) 1px, transparent 1px),
+      #070b14;
+    background-size:auto,auto,28px 28px,28px 28px,auto}
+  #graph{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+  #graph.dragging{cursor:grabbing}
+  .node{cursor:pointer}
+  .node-circle{stroke-width:1.5;transition:stroke-width .12s,filter .12s}
+  .node:hover .node-circle{stroke-width:3}
+  .node-label{font-size:10.5px;fill:#e5e7eb;text-anchor:middle;pointer-events:none;
+    paint-order:stroke;stroke:#070b14;stroke-width:3.5px;stroke-linejoin:round}
+  .node.hub .node-label{font-size:12px;font-weight:700;fill:#fff}
+  .node.dim{opacity:.10}
+  .node.highlight .node-circle{stroke:#fff!important;stroke-width:3}
+  .edge{stroke-linecap:round;fill:none}
+  .edge.req{stroke:var(--req);stroke-width:1.25;opacity:.55}
+  .edge.opt{stroke:var(--opt);stroke-width:1.45;opacity:.8;stroke-dasharray:5 4}
+  .edge.inc{stroke:var(--inc);stroke-width:1.6;opacity:.75;stroke-dasharray:3 3}
+  .edge.emb{stroke:var(--emb);stroke-width:1.2;opacity:.5;stroke-dasharray:2 4}
+  .edge.dim{opacity:.035}
+  .edge.highlight{opacity:.95!important;stroke-width:2.2}
+  #legend{position:absolute;left:12px;bottom:12px;background:rgba(9,14,26,.82);border:1px solid var(--border);
+    border-radius:10px;padding:8px 10px;font-size:11px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;
+    max-width:calc(100% - 24px);backdrop-filter:blur(6px);pointer-events:none}
+  #legend .lg{display:flex;align-items:center;gap:6px}
+  #legend i{display:inline-block;width:9px;height:9px;border-radius:50%}
+  #tooltip{position:absolute;pointer-events:none;z-index:30;background:rgba(9,14,26,.96);
+    border:1px solid #334155;border-radius:9px;padding:7px 9px;font-size:12px;line-height:1.45;
+    box-shadow:0 10px 30px rgba(0,0,0,.45);max-width:260px;display:none}
+  #tooltip .t-name{font-weight:700;color:#fff}
+  #tooltip .t-meta{color:var(--muted);font-size:11px;margin-top:2px}
+  #detail .empty{color:var(--muted);font-size:13px;line-height:1.8;padding:12px 4px}
+  .detail-title{font-size:18px;font-weight:750;line-height:1.25;margin:2px 0 4px;word-break:break-word}
+  .detail-sub{font-size:11px;color:var(--muted);margin-bottom:8px}
+  .chips{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 10px}
+  .chip{font-size:10.5px;padding:3px 7px;border-radius:999px;background:var(--panel2);border:1px solid var(--border);color:#cbd5e1}
+  .chip.cat{color:#0b1220;border:none;font-weight:700}
+  .badge{font-size:10px;padding:2px 6px;border-radius:6px;border:1px solid var(--border);color:var(--muted)}
+  .badge.hub{color:var(--gold);border-color:rgba(251,191,36,.45)}
+  .badge.lib{color:#cbd5e1;border-style:dashed}
+  .badge.iso{color:#fca5a5;border-color:rgba(248,113,113,.35)}
+  .detail-desc{font-size:12.5px;line-height:1.65;color:#cbd5e1;margin:8px 0 12px}
+  .detail-body{font-size:12px;line-height:1.7;color:#b8c4d6;border-top:1px solid var(--border);padding-top:10px;margin-top:8px}
+  .detail-body h1,.detail-body h2,.detail-body h3,.detail-body h4{color:#e2e8f0;margin:14px 0 6px;line-height:1.3}
+  .detail-body h1{font-size:15px}.detail-body h2{font-size:14px}.detail-body h3,.detail-body h4{font-size:13px}
+  .detail-body p{margin:6px 0}
+  .detail-body ul{margin:6px 0;padding-left:18px}
+  .detail-body li{margin:2px 0}
+  .detail-body code{background:#0b1220;border:1px solid var(--border);border-radius:4px;padding:1px 4px;font-size:11px}
+  .detail-body a{color:var(--accent);text-decoration:none}
+  .detail-body img{max-width:100%;border-radius:6px;margin:6px 0}
+  .section{margin-top:14px}
+  .section h3{font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin:0 0 6px}
+  .dep-item{display:flex;align-items:center;gap:6px;padding:4px 5px;border-radius:6px;font-size:12px;cursor:pointer;color:#cbd5e1}
+  .dep-item:hover{background:var(--panel2);color:#fff}
+  .dep-item .mini{font-size:10px;color:var(--muted);margin-left:auto;white-space:nowrap}
+  .dep-item .sw{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+  .dep-item.muted{color:var(--muted);cursor:default}
+  .actions2{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+  .actions2 .btn{font-size:11px;padding:6px 9px}
+  .link{color:var(--accent);text-decoration:none}
+  .link:hover{text-decoration:underline}
+  .mobile-only{display:none}
+  @media (max-width: 980px){
+    .brand{min-width:0;flex:1}
+    .brand .sub{white-space:normal}
+    .search{display:none}
+    .actions{flex:0 0 auto}
+    .actions .desktop-only{display:none}
+    main{display:block}
+    #stage{position:absolute;inset:0}
+    #left,#detail{position:absolute;z-index:25;box-shadow:0 18px 60px rgba(0,0,0,.55)}
+    #left{left:8px;top:8px;bottom:8px;width:min(280px,82vw);border:1px solid var(--border);border-radius:12px;
+      transform:translateX(-118%);transition:transform .18s ease}
+    #left.open{transform:translateX(0)}
+    #detail{right:0;bottom:0;left:0;top:auto;width:auto;height:48%;border-left:none;border-top:1px solid var(--border);
+      border-radius:16px 16px 0 0;transform:translateY(112%);transition:transform .2s ease;padding-top:10px}
+    #detail.open{transform:translateY(0)}
+    #detail .empty{display:none}
+    .mobile-only{display:inline-flex}
+    #legend{left:8px;bottom:8px;font-size:10px;gap:9px;padding:6px 8px;max-width:calc(100% - 16px)}
+  }
+  @media (max-width: 560px){
+    .brand h1{font-size:14px}
+    .brand .sub{font-size:10px}
+    .actions{gap:4px}
+    .btn{padding:6px 8px;font-size:11px}
+    #left{width:min(250px,86vw)}
+    #detail{height:54%}
+  }
+</style>
+<style id="mono">
+  /* Minimal black & white theme. */
+  :root{
+    --bg:#f4f4f1; --panel:#ffffff; --panel2:#efefeb; --border:#d4d4cf;
+    --text:#111111; --muted:#6b6b66; --accent:#111111; --gold:#111111;
+    --req:#8a8a85; --opt:#111111; --inc:#000000; --emb:#777772;
+  }
+  html,body{background:var(--bg);color:var(--text)}
+  header{background:rgba(255,255,255,.94);border-bottom-color:var(--border)}
+  .brand h1{color:#111}
+  .brand .sub{color:#6b6b66}
+  .search input{background:#fff;border-color:#cfcfc9;color:#111}
+  .search input:focus{border-color:#111}
+  .search::before{color:#6b6b66}
+  .btn{background:#fff;border-color:#cfcfc9;color:#111}
+  .btn:hover{background:#f0f0ec;border-color:#9a9a94}
+  .btn.active{background:#111;border-color:#111;color:#fff}
+  .btn.gold{color:#111;border-color:#111}
+  aside{background:#fff}
+  #left{border-right-color:var(--border)}
+  #detail{border-left-color:var(--border)}
+  .panel h2{color:#6b6b66}
+  .cat-row:hover,.edge-row:hover{background:#f0f0ec}
+  .dot{box-shadow:0 0 0 2px rgba(0,0,0,.08)}
+  #stats{color:#5f5f5a}
+  #stats b{color:#111}
+  #stats .hubline{color:#222}
+  #stats .hubline:hover{color:#000}
+  #stats .hubline span:last-child{color:#777}
+  #stage{
+    background:
+      linear-gradient(rgba(0,0,0,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,.035) 1px, transparent 1px),
+      #fafaf7;
+    background-size:28px 28px,28px 28px,auto;
+  }
+  .node.dim{opacity:.15}
+  .node-label{fill:#111;stroke:#fafaf7}
+  .node.hub .node-label{fill:#000}
+  .node.highlight .node-circle{stroke:#000!important}
+  .edge.req{stroke:#8a8a85;opacity:.7}
+  .edge.opt{stroke:#111;opacity:.85}
+  .edge.inc{stroke:#000;opacity:.9}
+  .edge.emb{stroke:#777772;opacity:.65}
+  .edge.dim{opacity:.045}
+  #legend{background:rgba(255,255,255,.9);color:#5f5f5a;border-color:var(--border)}
+  #tooltip{background:#fff;border-color:#c9c9c3;color:#111;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+  #tooltip .t-name{color:#000}
+  #tooltip .t-meta{color:#6b6b66}
+  #detail .empty{color:#6b6b66}
+  .detail-title{color:#000}
+  .detail-sub{color:#6b6b66}
+  .chip{background:#f2f2ee;border-color:#d4d4cf;color:#333}
+  .chip.cat{color:#111;background:#fff;border:1px solid #111;font-weight:600}
+  .badge{color:#555;border-color:#cfcfc9}
+  .badge.hub{color:#000;border-color:#000}
+  .badge.lib{color:#333;border-color:#999}
+  .badge.iso{color:#000;border-color:#000}
+  .detail-desc{color:#333}
+  .detail-body{color:#333;border-top-color:var(--border)}
+  .detail-body h1,.detail-body h2,.detail-body h3,.detail-body h4{color:#000}
+  .detail-body code{background:#f2f2ee;border-color:#d4d4cf;color:#111}
+  .detail-body a{color:#000;text-decoration:underline;text-underline-offset:2px}
+  .detail-body img{filter:grayscale(1) contrast(1.05);border:1px solid #e2e2dc}
+  .section h3{color:#6b6b66}
+  .dep-item{color:#333}
+  .dep-item:hover{background:#f0f0ec;color:#000}
+  .dep-item .mini{color:#777}
+  .dep-item.muted{color:#777}
+  .link{color:#000;text-decoration:underline;text-underline-offset:2px}
+  @media (max-width:980px){
+    #left,#detail{box-shadow:0 10px 40px rgba(0,0,0,.18)}
+    #detail{border-top-color:var(--border);background:#fff}
+  }
+</style>
+<style id="paper">
+  /* Paper document theme: warm paper, ink lines, serif prose, mono metadata. */
+  :root{
+    --paper:#f7f4ea; --paper-2:#eee9dc; --paper-3:#e6dfcf;
+    --ink:#1b1a17; --ink-soft:#454139; --ink-muted:#736d60;
+    --rule:#cfc7b5; --rule-strong:#a9a08d;
+    --bg:var(--paper); --panel:var(--paper); --panel2:var(--paper-2); --border:var(--rule);
+    --text:var(--ink); --muted:var(--ink-muted); --accent:var(--ink); --gold:var(--ink);
+    --req:#8e8778; --opt:#1b1a17; --inc:#1b1a17; --emb:#7b7568;
+    --font-serif:"Noto Serif CJK SC","Songti SC","STSong","SimSun",Georgia,"Times New Roman",serif;
+    --font-sans:"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    --font-mono:"JetBrains Mono","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+  }
+  html,body{background:var(--paper);color:var(--ink);font-family:var(--font-sans)}
+  body::after{
+    content:"";position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:.045;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
+    mix-blend-mode:multiply;
+  }
+  header{position:relative;background:rgba(247,244,234,.97);border-bottom:1px solid var(--rule);
+    box-shadow:0 1px 0 rgba(27,26,23,.06);backdrop-filter:none}
+  header::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:1px;background:var(--rule);opacity:.55}
+  .brand .eyebrow{font-family:var(--font-mono);font-size:9px;letter-spacing:.18em;color:var(--ink-muted);
+    margin-bottom:2px;text-transform:uppercase}
+  .brand h1{font-family:var(--font-serif);font-weight:700;font-size:19px;letter-spacing:.01em;color:var(--ink)}
+  .brand .sub{font-family:var(--font-mono);font-size:10px;letter-spacing:.03em;color:var(--ink-muted)}
+  .search input{background:var(--paper);border:1px solid var(--rule);border-radius:2px;color:var(--ink);
+    font-family:var(--font-sans)}
+  .search input:focus{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+  .search::before{color:var(--ink-muted)}
+  .btn{background:transparent;border:1px solid var(--rule-strong);border-radius:2px;color:var(--ink);
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.03em}
+  .btn:hover{background:var(--paper-2);border-color:var(--ink)}
+  .btn.active{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+  aside{background:var(--paper)}
+  #left{border-right:1px solid var(--rule)}
+  #detail{border-left:1px solid var(--rule)}
+  .panel h2{font-family:var(--font-mono);color:var(--ink-muted);font-size:10px;letter-spacing:.18em}
+  #left{counter-reset:panel}
+  #left .panel h2{counter-increment:panel}
+  #left .panel h2::before{content:"0" counter(panel) "  ";color:var(--rule-strong)}
+  .cat-row,.edge-row{border-bottom:1px dotted var(--rule);border-radius:0;font-family:var(--font-sans)}
+  .cat-row:hover,.edge-row:hover{background:var(--paper-2)}
+  input[type="checkbox"]{accent-color:var(--ink)}
+  .dot{box-shadow:none;border:1px solid rgba(27,26,23,.25)}
+  .count{font-family:var(--font-mono);font-size:11px}
+  #stats{font-family:var(--font-sans);color:var(--ink-soft)}
+  #stats b{font-family:var(--font-mono);font-weight:600}
+  #stats .hubline{color:var(--ink-soft);border-bottom:1px dotted var(--rule);padding:3px 0}
+  #stats .hubline:hover{color:var(--ink)}
+  #stats .hubline span:last-child{font-family:var(--font-mono);color:var(--ink-muted)}
+  #stage{
+    background-color:var(--paper);
+    background-image:radial-gradient(rgba(27,26,23,.10) .55px, transparent .65px);
+    background-size:22px 22px;
+  }
+  #stage::before{content:"";position:absolute;inset:9px;border:1px solid rgba(27,26,23,.14);
+    pointer-events:none;z-index:2}
+  #figure-caption{position:absolute;left:18px;top:15px;z-index:5;pointer-events:none;
+    font-family:var(--font-mono);font-size:9px;letter-spacing:.16em;color:var(--ink-muted);text-transform:uppercase;
+    background:rgba(247,244,234,.88);padding:2px 5px}
+  #page-mark{position:absolute;right:18px;bottom:15px;z-index:5;pointer-events:none;
+    font-family:var(--font-mono);font-size:9px;letter-spacing:.16em;color:var(--ink-muted);text-transform:uppercase;
+    background:rgba(247,244,234,.88);padding:2px 5px}
+  .node.dim{opacity:.13}
+  .node-label{font-family:var(--font-sans);fill:var(--ink);stroke:var(--paper);stroke-width:3.2px}
+  .node.hub .node-label{font-family:var(--font-serif);font-weight:700;fill:var(--ink)}
+  .node-label-zh{font-family:var(--font-sans);font-size:9.5px;fill:var(--ink-muted);text-anchor:middle;
+    pointer-events:none;paint-order:stroke;stroke:var(--paper);stroke-width:2.6px;stroke-linejoin:round}
+  .node.hub .node-label-zh{font-size:10.5px;fill:var(--ink-soft);font-weight:500}
+  .node.highlight .node-circle{stroke:var(--ink)!important}
+  .edge.req{stroke:#8e8778;opacity:.62;stroke-width:1.15}
+  .edge.opt{stroke:#1b1a17;opacity:.82;stroke-width:1.35}
+  .edge.inc{stroke:#1b1a17;opacity:.9;stroke-width:1.5}
+  .edge.emb{stroke:#7b7568;opacity:.6;stroke-width:1.1}
+  #legend{background:rgba(247,244,234,.94);border:1px solid var(--rule);border-radius:0;
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.02em;color:var(--ink-muted);
+    box-shadow:none;padding:7px 9px}
+  #tooltip{background:var(--paper);border:1px solid var(--ink);border-radius:2px;color:var(--ink);
+    box-shadow:3px 3px 0 rgba(27,26,23,.12);font-family:var(--font-sans)}
+  #tooltip .t-name{font-family:var(--font-serif);color:var(--ink)}
+  #tooltip .t-zh{font-family:var(--font-sans);font-size:11px;color:var(--ink-muted);margin-left:6px;font-weight:400}
+  #tooltip .t-meta{font-family:var(--font-mono);font-size:10px;color:var(--ink-muted)}
+  #import-status{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:10001;
+    display:none;max-width:84vw;padding:8px 14px;background:var(--ink);color:var(--paper);
+    font-family:var(--font-sans);font-size:12px;line-height:1.5;text-align:center;border-radius:2px;
+    box-shadow:3px 3px 0 rgba(27,26,23,.16)}
+  #import-status.error{background:#7f1d1d;color:#fff}
+  #detail .empty{font-family:var(--font-serif);color:var(--ink-muted);font-size:13px;line-height:1.9}
+  .detail-title{font-family:var(--font-serif);font-weight:700;color:var(--ink);font-size:22px;letter-spacing:.01em}
+  .detail-zh{font-family:var(--font-sans);font-size:14px;font-weight:400;color:var(--ink-muted);
+    margin-left:8px;letter-spacing:.02em;white-space:nowrap}
+  .hubline .zh{font-family:var(--font-sans);font-size:10px;color:var(--ink-muted);margin-left:4px}
+  .dep-main{display:flex;flex-direction:column;min-width:0;line-height:1.35}
+  .dep-main > span:first-child{color:var(--ink-soft)}
+  .dep-zh{font-family:var(--font-sans);font-size:9.5px;color:var(--ink-muted)}
+  .detail-sub{font-family:var(--font-mono);font-size:10px;letter-spacing:.02em;color:var(--ink-muted)}
+  .chip{background:var(--paper-2);border:1px solid var(--rule);border-radius:2px;color:var(--ink-soft);
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.02em}
+  .chip.cat{background:var(--paper);color:var(--ink);border:1px solid var(--ink);border-radius:2px;font-weight:600}
+  .badge{border-radius:2px;border-color:var(--rule-strong);color:var(--ink-muted);
+    font-family:var(--font-mono);font-size:9px;letter-spacing:.06em}
+  .badge.hub{color:var(--ink);border-color:var(--ink)}
+  .badge.lib{color:var(--ink-soft);border-color:var(--rule-strong);border-style:dashed}
+  .badge.iso{color:var(--ink-soft);border-color:var(--rule-strong)}
+  .detail-desc{font-family:var(--font-serif);color:var(--ink-soft);font-size:13px;line-height:1.75}
+  .detail-body{font-family:var(--font-serif);color:var(--ink-soft);font-size:12.8px;line-height:1.8;
+    border-top:1px solid var(--rule)}
+  .detail-body h1,.detail-body h2,.detail-body h3,.detail-body h4{font-family:var(--font-serif);color:var(--ink)}
+  .detail-body code{background:var(--paper-2);border:1px solid var(--rule);border-radius:2px;color:var(--ink);
+    font-family:var(--font-mono)}
+  .detail-body a{color:var(--ink);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+  .detail-body img{filter:grayscale(1) contrast(1.02);border:1px solid var(--rule);border-radius:0}
+  #detail{counter-reset:section}
+  .section h3{font-family:var(--font-mono);color:var(--ink-muted);letter-spacing:.14em;font-size:9.5px}
+  .section h3::before{counter-increment:section;content:"§ " counter(section, decimal-leading-zero) "  ";color:var(--rule-strong)}
+  .dep-item{font-family:var(--font-sans);color:var(--ink-soft);border-bottom:1px dotted var(--rule);border-radius:0;
+    align-items:flex-start}
+  .dep-item .sw{margin-top:5px}
+  .dep-item .mini{align-self:flex-start;padding-top:2px}
+  .dep-item:hover{background:var(--paper-2);color:var(--ink)}
+  .dep-item .mini{font-family:var(--font-mono);color:var(--ink-muted);font-size:10px}
+  .dep-item.muted{color:var(--ink-muted)}
+  .link{color:var(--ink);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+  .actions2 .btn{background:transparent}
+  @media (max-width:980px){
+    #left,#detail{box-shadow:6px 6px 0 rgba(27,26,23,.10)}
+    #detail{border-top:1px solid var(--rule);background:var(--paper)}
+    #figure-caption{left:14px;top:12px;font-size:8px}
+    #page-mark{display:none}
+    #stage::before{inset:6px}
+  }
+  @media (max-width:560px){
+    .brand .eyebrow{font-size:8px;letter-spacing:.12em}
+    .brand h1{font-size:16px}
+    #figure-caption{max-width:70%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  }
+</style>
+<style id="landscape">
+  /* Phone landscape: graph gets the full stage; filters and details slide over it. */
+  @media (orientation: landscape) and (max-height: 620px) {
+    header{padding:6px 10px;gap:10px}
+    .brand{min-width:150px}
+    .brand .eyebrow{font-size:7.5px;letter-spacing:.12em;margin-bottom:1px}
+    .brand h1{font-size:15px}
+    .brand .sub{font-size:8.5px;white-space:nowrap}
+    .search{max-width:240px}
+    .search input{padding:6px 10px 6px 28px;font-size:12px}
+    .search::before{top:4px;font-size:14px}
+    .actions .desktop-only{display:none}
+    .mobile-only{display:inline-flex}
+    .btn{padding:5px 7px;font-size:10px}
+    main{display:block;position:relative}
+    #stage{position:absolute;inset:0}
+    #left{position:absolute;left:6px;top:6px;bottom:6px;width:min(220px,34vw);z-index:25;
+      border:1px solid var(--rule);border-radius:0;box-shadow:5px 5px 0 rgba(27,26,23,.10);
+      transform:translateX(-118%);transition:transform .18s ease;padding:8px 8px 20px}
+    #left.open{transform:translateX(0)}
+    #detail{position:absolute;right:0;top:0;bottom:0;left:auto;width:min(300px,42vw);height:auto;
+      z-index:26;border-left:1px solid var(--rule);border-top:none;border-radius:0;
+      box-shadow:-5px 0 0 rgba(27,26,23,.08);transform:translateX(112%);transition:transform .2s ease;
+      padding:10px 10px 20px}
+    #detail.open{transform:translateX(0)}
+    #detail .empty{display:none}
+    #figure-caption{left:12px;top:8px;font-size:8px}
+    #page-mark{display:none}
+    #stage::before{inset:5px}
+    #legend{left:8px;bottom:8px;font-size:9px;gap:8px;padding:5px 7px;max-width:calc(100% - 16px)}
+    .panel{margin-bottom:10px}
+    .panel h2{font-size:9px;margin-bottom:5px}
+    .cat-row,.edge-row{font-size:11px;padding:3px 4px}
+    #stats{font-size:11px;line-height:1.6}
+    .detail-title{font-size:18px}
+    .detail-zh{font-size:12px;margin-left:6px}
+    .node-label-zh{font-size:8.5px}
+    .detail-sub{font-size:9px}
+    .detail-desc{font-size:12px;line-height:1.65}
+    .detail-body{font-size:12px;line-height:1.7}
+    .section h3{font-size:9px}
+    .dep-item{font-size:11px;padding:3px 4px}
+    .chip{font-size:9px}
+    .badge{font-size:8px}
+    .actions2{margin:8px 0}
+    .actions2 .btn{font-size:10px;padding:5px 7px}
+  }
+  @media (orientation: landscape) and (max-height: 620px) and (max-width: 720px) {
+    .search{display:none}
+    .brand{min-width:130px}
+    #detail{width:min(280px,46vw)}
+    #left{width:min(210px,38vw)}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <div class="eyebrow">MODPACK STUDIO · FIG. 01</div>
+      <h1 id="pack-name">模组关系图</h1>
+      <div class="sub" id="pack-sub"></div>
+    </div>
+    <div class="search"><input id="search" placeholder="搜索 mod / 中文名 / 分类 / 前置..." autocomplete="off"></div>
+    <div class="actions">
+      <button class="btn mobile-only" id="toggle-left">筛选</button>
+      <button class="btn" id="import-btn">导入</button>
+      <button class="btn desktop-only" data-view="all">全部</button>
+      <button class="btn desktop-only" data-view="deps">只看依赖</button>
+      <button class="btn desktop-only" data-view="links">只看联动</button>
+      <button class="btn desktop-only" data-view="isolated">只看孤立</button>
+      <button class="btn" id="fit">适配</button>
+      <button class="btn" id="relayout">重排</button>
+    </div>
+  </header>
+  <input type="file" id="import-file" accept=".mrpack,.zip,application/zip" style="display:none">
+  <div id="import-status"></div>
+  <main>
+    <aside id="left">
+      <div class="panel">
+        <h2>视图</h2>
+        <div class="viewgrid">
+          <button class="btn" data-view2="all">全部</button>
+          <button class="btn" data-view2="deps">只看依赖</button>
+          <button class="btn" data-view2="links">只看联动</button>
+          <button class="btn" data-view2="isolated">只看孤立</button>
+        </div>
+        <label class="cat-row"><input type="checkbox" id="show-labels"> 显示全部标签</label>
+        <label class="cat-row"><input type="checkbox" id="show-zh"> 显示中文译名</label>
+        <label class="cat-row"><input type="checkbox" id="hide-isolated"> 隐藏孤立节点</label>
+        <button class="btn" id="reset-import" style="display:none;width:100%;margin-top:6px">返回示例</button>
+      </div>
+      <div class="panel">
+        <h2>分类</h2>
+        <div id="categories"></div>
+      </div>
+      <div class="panel">
+        <h2>边类型</h2>
+        <div id="edgetypes"></div>
+      </div>
+      <div class="panel">
+        <h2>概览</h2>
+        <div id="stats"></div>
+      </div>
+    </aside>
+    <section id="stage">
+      <div id="figure-caption">FIG. 01 — MOD DEPENDENCY GRAPH</div>
+      <svg id="graph" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div id="legend"></div>
+      <div id="page-mark">MODPACK STUDIO · 01</div>
+      <div id="tooltip"></div>
+    </section>
+    <aside id="detail"><div class="empty">点击图上的 mod 查看详情、前置链和被依赖关系。</div></aside>
+  </main>
+</div>
+<script>/*__JSZIP__*/</script>
+<script>window.ZH_NAMES = /*__ZH_NAMES__*/;</script>
+<script id="payload" type="application/json">/*__DATA__*/</script>
+<script>
+(() => {
+"use strict";
+const embeddedRaw = JSON.parse(document.getElementById('payload').textContent);
+const IMPORT_KEY = 'modpack-studio:imported';
+function loadImportedRaw() {
+  try {
+    if (window.AndroidHost && AndroidHost.loadImported) {
+      const s = AndroidHost.loadImported();
+      if (s) return JSON.parse(s);
+    }
+  } catch (e) {}
+  try { return JSON.parse(localStorage.getItem(IMPORT_KEY) || 'null'); } catch (e) { return null; }
+}
+function saveImportedRaw(data) {
+  const s = JSON.stringify(data);
+  let ok = false;
+  try { if (window.AndroidHost && AndroidHost.saveImported) { AndroidHost.saveImported(s); ok = true; } } catch (e) {}
+  try { localStorage.setItem(IMPORT_KEY, s); ok = true; } catch (e) {}
+  return ok;
+}
+function clearImportedRaw() {
+  try { if (window.AndroidHost && AndroidHost.clearImported) AndroidHost.clearImported(); } catch (e) {}
+  try { localStorage.removeItem(IMPORT_KEY); } catch (e) {}
+}
+let importedRaw = loadImportedRaw();
+const importedValid = importedRaw && importedRaw.pack && Array.isArray(importedRaw.nodes) && Array.isArray(importedRaw.edges);
+const RAW = importedValid ? importedRaw : embeddedRaw;
+
+// The workbench is intentionally monochrome: category colors from the data are
+// replaced with a grayscale ramp, so the graph reads like a printed diagram.
+const MONO_GRAYS = ['#1b1a17','#2f2c26','#46423a','#5d584e','#757064','#8e887a','#a9a293','#c6bfae'];
+RAW.categories.forEach((c, i) => {
+  c.color = c.key === 'missing' ? '#000000' : MONO_GRAYS[i % MONO_GRAYS.length];
+});
+const CAT_COLOR = new Map(RAW.categories.map(c => [c.key, c.color]));
+
+// Layout modes: portrait phones use a bottom sheet; landscape phones use a
+// right-side detail drawer and give the graph the full stage.
+const landscapeQuery = window.matchMedia('(orientation: landscape) and (max-height: 620px)');
+const narrowQuery = window.matchMedia('(max-width: 980px)');
+const isLandscapeCompact = () => landscapeQuery.matches;
+const isCompact = () => narrowQuery.matches || landscapeQuery.matches;
+const isPortraitCompact = () => narrowQuery.matches && !landscapeQuery.matches;
+
+const $ = (s) => document.querySelector(s);
+const NS = 'http://www.w3.org/2000/svg';
+const svg = $('#graph');
+const stage = $('#stage');
+const tooltip = $('#tooltip');
+const detail = $('#detail');
+
+const state = {
+  categories: new Set(RAW.categories.map(c => c.key)),
+  edgeTypes: new Set(['required','optional','incompatible','embedded']),
+  search: '',
+  selected: null,
+  hovered: null,
+  showAllLabels: !isCompact(),
+  hideIsolated: isCompact(),
+  showZh: true,
+  isolatedOnly: false,
+  view: 'all',
+  neighborOnly: false,
+};
+
+const nodes = RAW.nodes.map((n, i) => ({
+  ...n,
+  color: CAT_COLOR.get(n.category) || '#777777',
+  x: 0, y: 0, vx: 0, vy: 0,
+  r: nodeRadius(n),
+  _i: i,
+}));
+const nodeById = new Map(nodes.map(n => [n.id, n]));
+const edges = RAW.edges.map(e => ({
+  ...e,
+  s: nodeById.get(e.source),
+  t: nodeById.get(e.target),
+})).filter(e => e.s && e.t);
+
+// adjacency
+const outMap = new Map(nodes.map(n => [n.id, []]));
+const inMap = new Map(nodes.map(n => [n.id, []]));
+for (const e of edges) {
+  outMap.get(e.source).push(e);
+  inMap.get(e.target).push(e);
+}
+for (const n of nodes) {
+  n.neighbors = new Set([
+    ...outMap.get(n.id).map(e => e.target),
+    ...inMap.get(n.id).map(e => e.source),
+  ]);
+}
+
+function nodeRadius(n) {
+  if (n.missing) return 7;
+  if (n.isolated) return 6;
+  return Math.min(30, 6.5 + Math.sqrt(n.inDegree) * 4.4);
+}
+
+function categoryCenter(key) {
+  // bookshelf-style: libraries in the middle, content around them.
+  // On phones use a taller ellipse so the graph fits a portrait viewport.
+  const angles = {
+    technology: -18, decoration: 34, building: 34, adventure: 82, worldgen: 112,
+    food: 148, agriculture: 148, equipment: 178, combat: 202, mobs: 228,
+    storage: 258, transportation: 278, utility: 306, management: 330,
+    magic: 214, quests: 66, 'game-mechanics': 246, optimization: 48,
+  };
+  if (key === 'library') return {x: 0, y: 0};
+  const mobile = isPortraitCompact();
+  if (mobile) {
+    const anchors = {
+      technology: [0, -250], decoration: [-150, -120], building: [-150, -120],
+      utility: [150, -150], optimization: [0, -370], adventure: [0, 290],
+      worldgen: [-150, 180], food: [150, 180], agriculture: [150, 180],
+      equipment: [-200, 80], combat: [200, 80], storage: [-170, 300],
+      transportation: [170, 300], magic: [-210, 0], mobs: [210, 190],
+      management: [200, -30], quests: [0, 140], 'game-mechanics': [0, 50],
+      uncategorized: [0, 380], missing: [0, 380],
+    };
+    const a = anchors[key];
+    if (a) return {x: a[0], y: a[1]};
+  }
+  const idx = RAW.categories.findIndex(c => c.key === key);
+  const deg = (angles[key] ?? (idx * 47 - 90)) * Math.PI / 180;
+  const rx = key === 'optimization' ? 150 : 300;
+  const ry = key === 'optimization' ? 190 : 300;
+  return {x: Math.cos(deg) * rx, y: Math.sin(deg) * ry};
+}
+let centers = new Map(RAW.categories.map(c => [c.key, categoryCenter(c.key)]));
+function recomputeCenters() {
+  centers = new Map(RAW.categories.map(c => [c.key, categoryCenter(c.key)]));
+}
+
+function jitter(id) {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) { h ^= id.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return ((h >>> 0) % 1000) / 1000 - 0.5;
+}
+
+function initPositions() {
+  for (const n of nodes) {
+    const c = centers.get(n.category) || {x: 0, y: 0};
+    n.x = c.x + jitter(n.id + 'x') * 150;
+    n.y = c.y + jitter(n.id + 'y') * 150;
+    n.vx = n.vy = 0;
+  }
+}
+
+function stretchMobile() {
+  if (!isPortraitCompact()) return;
+  for (const n of nodes) n.y *= 1.6;
+}
+
+function simulate(ticks = 520) {
+  const N = nodes.length;
+  for (let step = 0; step < ticks; step++) {
+    const alpha = 1 - step / ticks * 0.92;
+    // repulsion
+    for (let i = 0; i < N; i++) {
+      const a = nodes[i];
+      for (let j = i + 1; j < N; j++) {
+        const b = nodes[j];
+        let dx = b.x - a.x, dy = b.y - a.y;
+        let d2 = dx * dx + dy * dy;
+        if (d2 < 1) { dx = (jitter(a.id + b.id) || 0.1); dy = (jitter(b.id + a.id) || 0.1); d2 = dx*dx+dy*dy; }
+        const d = Math.sqrt(d2);
+        const force = 5200 * alpha / d2;
+        const fx = dx / d * force, fy = dy / d * force;
+        a.vx -= fx; a.vy -= fy; b.vx += fx; b.vy += fy;
+      }
+    }
+    // springs
+    for (const e of edges) {
+      const a = e.s, b = e.t;
+      let dx = b.x - a.x, dy = b.y - a.y;
+      const d = Math.max(1, Math.hypot(dx, dy));
+      const desired = a.r + b.r + 38 + (e.type === 'optional' ? 22 : 0);
+      const strength = e.type === 'optional' ? 0.006 : 0.012;
+      const f = (d - desired) * strength * alpha;
+      const fx = dx / d * f, fy = dy / d * f;
+      a.vx += fx; a.vy += fy; b.vx -= fx; b.vy -= fy;
+    }
+    // category + center gravity
+    for (const n of nodes) {
+      const c = centers.get(n.category) || {x: 0, y: 0};
+      n.vx += (c.x - n.x) * 0.0045 * alpha;
+      n.vy += (c.y - n.y) * 0.0045 * alpha;
+      n.vx += -n.x * 0.0008 * alpha;
+      n.vy += -n.y * 0.0008 * alpha;
+      n.vx *= 0.86; n.vy *= 0.86;
+      const v = Math.hypot(n.vx, n.vy);
+      if (v > 18) { n.vx = n.vx / v * 18; n.vy = n.vy / v * 18; }
+      n.x += n.vx; n.y += n.vy;
+    }
+  }
+  // separate overlapping nodes a little
+  for (let pass = 0; pass < 80; pass++) {
+    for (let i = 0; i < N; i++) {
+      const a = nodes[i];
+      for (let j = i + 1; j < N; j++) {
+        const b = nodes[j];
+        let dx = b.x - a.x, dy = b.y - a.y;
+        const d = Math.max(1, Math.hypot(dx, dy));
+        const min = a.r + b.r + 8;
+        if (d < min) {
+          const push = (min - d) * 0.5;
+          a.x -= dx / d * push; a.y -= dy / d * push;
+          b.x += dx / d * push; b.y += dy / d * push;
+        }
+      }
+    }
+  }
+}
+
+// ---------------- SVG ----------------
+let view = {x: 0, y: 0, k: 1};
+const viewport = document.createElementNS(NS, 'g');
+viewport.setAttribute('id', 'viewport');
+svg.appendChild(viewport);
+const edgesLayer = document.createElementNS(NS, 'g');
+const nodesLayer = document.createElementNS(NS, 'g');
+viewport.appendChild(edgesLayer);
+viewport.appendChild(nodesLayer);
+
+const defs = document.createElementNS(NS, 'defs');
+for (const [id, color] of [['req','#8e8778'],['opt','#1b1a17'],['inc','#1b1a17'],['emb','#7b7568']]) {
+  const marker = document.createElementNS(NS, 'marker');
+  marker.setAttribute('id', 'arrow-' + id);
+  marker.setAttribute('viewBox', '0 0 10 10');
+  marker.setAttribute('refX', '9'); marker.setAttribute('refY', '5');
+  marker.setAttribute('markerWidth', '5'); marker.setAttribute('markerHeight', '5');
+  marker.setAttribute('orient', 'auto-start-reverse');
+  const p = document.createElementNS(NS, 'path');
+  p.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+  p.setAttribute('fill', color);
+  marker.appendChild(p);
+  defs.appendChild(marker);
+}
+svg.appendChild(defs);
+
+const edgeEls = new Map();
+const nodeEls = new Map();
+const labelEls = new Map();
+const labelZhEls = new Map();
+
+function buildSvg() {
+  edgesLayer.innerHTML = '';
+  nodesLayer.innerHTML = '';
+  for (const e of edges) {
+    const line = document.createElementNS(NS, 'line');
+    line.setAttribute('class', 'edge ' + e.type.slice(0,3));
+    line.setAttribute('marker-end', 'url(#arrow-' + e.type.slice(0,3) + ')');
+    edgesLayer.appendChild(line);
+    edgeEls.set(e, line);
+  }
+  for (const n of nodes) {
+    const g = document.createElementNS(NS, 'g');
+    g.setAttribute('class', 'node');
+    g.setAttribute('data-id', n.id);
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('class', 'node-circle');
+    c.setAttribute('r', n.r);
+    c.setAttribute('fill', n.missing || n.isolated ? '#f7f4ea' : (n.isLibrary ? '#eee9dc' : n.color));
+    c.setAttribute('stroke', n.missing ? '#1b1a17' : (n.hub ? '#1b1a17' : (n.isLibrary ? '#1b1a17' : (n.isolated ? '#a9a08d' : 'rgba(27,26,23,.55)'))));
+    if (n.isolated) c.setAttribute('stroke-dasharray', '1 3');
+    if (n.isLibrary) c.setAttribute('stroke-dasharray', '4 3');
+    if (n.missing) c.setAttribute('stroke-dasharray', '3 2');
+    if (n.hub) c.setAttribute('stroke-width', '2.4');
+    g.appendChild(c);
+    const label = document.createElementNS(NS, 'text');
+    label.setAttribute('class', 'node-label');
+    label.textContent = n.label;
+    g.appendChild(label);
+    const labelZh = document.createElementNS(NS, 'text');
+    labelZh.setAttribute('class', 'node-label-zh');
+    labelZh.textContent = n.nameZh || '';
+    g.appendChild(labelZh);
+    nodesLayer.appendChild(g);
+    nodeEls.set(n.id, g);
+    labelEls.set(n.id, label);
+    labelZhEls.set(n.id, labelZh);
+    g.addEventListener('pointerenter', (ev) => onNodeEnter(n, ev));
+    g.addEventListener('pointerleave', onNodeLeave);
+    g.addEventListener('pointerdown', (ev) => onNodePointerDown(ev, n));
+    g.addEventListener('click', (ev) => { ev.stopPropagation(); selectNode(n.id); });
+  }
+  layoutStatic();
+}
+
+function layoutStatic() {
+  for (const e of edges) {
+    const line = edgeEls.get(e);
+    line.setAttribute('x1', e.s.x); line.setAttribute('y1', e.s.y);
+    line.setAttribute('x2', e.t.x); line.setAttribute('y2', e.t.y);
+  }
+  for (const n of nodes) {
+    const g = nodeEls.get(n.id);
+    if (!g) continue;
+    g.setAttribute('transform', `translate(${n.x},${n.y})`);
+    labelEls.get(n.id).setAttribute('y', n.r + 12);
+    const labelZh = labelZhEls.get(n.id);
+    if (labelZh) labelZh.setAttribute('y', n.r + 23);
+  }
+  updateLabels();
+}
+
+// Collision-aware labels: hubs and selected nodes win, the rest hide if they overlap.
+function labelTextWidth(text, size) {
+  let w = 0;
+  for (const ch of String(text || '')) {
+    w += /[⺀-鿿豈-﫿＀-￯]/.test(ch) ? size : size * 0.58;
+  }
+  return w;
+}
+
+function updateLabels() {
+  const placed = [];
+  const compact = isCompact();
+  const landscape = isLandscapeCompact();
+  const order = [...nodes].sort((a, b) => labelPriority(b) - labelPriority(a));
+  for (const n of order) {
+    const g = nodeEls.get(n.id);
+    const label = labelEls.get(n.id);
+    const labelZh = labelZhEls.get(n.id);
+    if (!g || !label) continue;
+    if (g.style.display === 'none') {
+      label.style.display = 'none';
+      if (labelZh) labelZh.style.display = 'none';
+      continue;
+    }
+    let show = state.showAllLabels || n.id === state.selected || n.id === state.hovered ||
+      n.inDegree >= 3 || n.degree >= 5 || matchSearch(n);
+    if (compact && n.id !== state.selected && n.id !== state.hovered && !matchSearch(n)) {
+      show = landscape ? (n.inDegree >= 2 || n.degree >= 4) : n.inDegree >= 3;
+    }
+    if (!show) {
+      label.style.display = 'none';
+      if (labelZh) labelZh.style.display = 'none';
+      continue;
+    }
+    const size = n.hub ? 12 : 10.5;
+    const zhSize = n.hub ? 10.5 : 9.5;
+    const zh = (state.showZh && n.nameZh) ? n.nameZh : '';
+    const enW = labelTextWidth(n.label, size);
+    const zhW = zh ? labelTextWidth(zh, zhSize) : 0;
+    const w = Math.max(10, enW, zhW) + 6;
+    const lineGap = zh ? zhSize + 1 : 0;
+    const candidates = [
+      {x: n.x, y: n.y + n.r + 12, anchor: 'middle', dir: 'down'},
+      {x: n.x, y: n.y - n.r - 6, anchor: 'middle', dir: 'up'},
+      {x: n.x + n.r + 6, y: n.y + 4, anchor: 'start', dir: 'right'},
+      {x: n.x - n.r - 6, y: n.y + 4, anchor: 'end', dir: 'left'},
+    ];
+    let chosen = null;
+    for (const c of candidates) {
+      let enBaseY, zhBaseY;
+      if (c.dir === 'up') {
+        zhBaseY = c.y;
+        enBaseY = c.y - lineGap;
+      } else {
+        enBaseY = c.y;
+        zhBaseY = c.y + lineGap;
+      }
+      const top = Math.min(enBaseY - size * 0.82, zh ? zhBaseY - zhSize * 0.82 : enBaseY - size * 0.82);
+      const bottom = Math.max(enBaseY + size * 0.22, zh ? zhBaseY + zhSize * 0.22 : enBaseY + size * 0.22);
+      const left = c.x - (c.anchor === 'middle' ? w / 2 : c.anchor === 'start' ? 0 : w);
+      const rect = {left, top, right: left + w, bottom};
+      if (!placed.some(p => !(rect.right < p.left || rect.left > p.right || rect.bottom < p.top || rect.top > p.bottom))) {
+        chosen = {...c, enBaseY, zhBaseY, rect};
+        break;
+      }
+    }
+    if (!chosen) {
+      label.style.display = 'none';
+      if (labelZh) labelZh.style.display = 'none';
+      continue;
+    }
+    label.setAttribute('x', chosen.x - n.x);
+    label.setAttribute('y', chosen.enBaseY - n.y);
+    label.setAttribute('text-anchor', chosen.anchor);
+    label.style.display = '';
+    if (labelZh) {
+      labelZh.setAttribute('x', chosen.x - n.x);
+      labelZh.setAttribute('y', chosen.zhBaseY - n.y);
+      labelZh.setAttribute('text-anchor', chosen.anchor);
+      labelZh.style.display = zh ? '' : 'none';
+    }
+    placed.push(chosen.rect);
+  }
+}
+
+function labelPriority(n) {
+  if (n.id === state.selected) return 10000;
+  if (n.id === state.hovered) return 9000;
+  if (matchSearch(n)) return 8000;
+  return (n.hub ? 5000 : 0) + n.inDegree * 10 + n.degree;
+}
+
+function applyView() {
+  viewport.setAttribute('transform', `translate(${view.x},${view.y}) scale(${view.k})`);
+}
+
+function fitView(animate = false) {
+  const visible = nodes.filter(n => nodeVisible(n) && (!nodeEls.get(n.id) || nodeEls.get(n.id).style.display !== 'none'));
+  const use = visible.length ? visible : nodes;
+  const xs = use.map(n => n.x), ys = use.map(n => n.y);
+  const minX = Math.min(...xs) - 50, maxX = Math.max(...xs) + 50;
+  const minY = Math.min(...ys) - 50, maxY = Math.max(...ys) + 50;
+  const w = stage.clientWidth, h = stage.clientHeight;
+  const k = Math.min(w / (maxX - minX), h / (maxY - minY)) * 0.92;
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  view.k = Math.max(0.15, Math.min(3, k));
+  view.x = w / 2 - cx * view.k;
+  view.y = h / 2 - cy * view.k;
+  applyView();
+}
+
+function centerOn(n) {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  view.k = Math.max(view.k, 1.2);
+  view.x = w / 2 - n.x * view.k;
+  view.y = h / 2 - n.y * view.k;
+  applyView();
+}
+
+// ---------------- interactions ----------------
+let pan = null;
+let pinch = null;
+const pointers = new Map();
+
+svg.addEventListener('pointerdown', (ev) => {
+  if (ev.target.closest('.node')) return;
+  pointers.set(ev.pointerId, {x: ev.clientX, y: ev.clientY});
+  svg.setPointerCapture(ev.pointerId);
+  if (pointers.size === 1) {
+    pan = {x: ev.clientX, y: ev.clientY, vx: view.x, vy: view.y};
+    svg.classList.add('dragging');
+  } else if (pointers.size === 2) {
+    const [a, b] = [...pointers.values()];
+    pinch = {dist: Math.hypot(a.x-b.x, a.y-b.y), k: view.k, mx: (a.x+b.x)/2, my: (a.y+b.y)/2};
+    pan = null;
+  }
+});
+svg.addEventListener('pointermove', (ev) => {
+  if (pointers.has(ev.pointerId)) pointers.set(ev.pointerId, {x: ev.clientX, y: ev.clientY});
+  if (pinch && pointers.size === 2) {
+    const [a, b] = [...pointers.values()];
+    const dist = Math.hypot(a.x-b.x, a.y-b.y);
+    const ratio = dist / Math.max(1, pinch.dist);
+    const newK = Math.max(0.15, Math.min(4, pinch.k * ratio));
+    const rect = svg.getBoundingClientRect();
+    const mx = (a.x+b.x)/2 - rect.left, my = (a.y+b.y)/2 - rect.top;
+    const wx = (mx - view.x) / view.k, wy = (my - view.y) / view.k;
+    view.k = newK;
+    view.x = mx - wx * newK; view.y = my - wy * newK;
+    applyView();
+    return;
+  }
+  if (pan) {
+    view.x = pan.vx + (ev.clientX - pan.x);
+    view.y = pan.vy + (ev.clientY - pan.y);
+    applyView();
+  }
+});
+function endPointer(ev) {
+  pointers.delete(ev.pointerId);
+  if (pointers.size < 2) pinch = null;
+  if (pointers.size === 0) { pan = null; svg.classList.remove('dragging'); }
+}
+svg.addEventListener('pointerup', endPointer);
+svg.addEventListener('pointercancel', endPointer);
+svg.addEventListener('wheel', (ev) => {
+  ev.preventDefault();
+  const rect = svg.getBoundingClientRect();
+  const mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+  const scale = Math.exp(-ev.deltaY * 0.0012);
+  const newK = Math.max(0.15, Math.min(4, view.k * scale));
+  const wx = (mx - view.x) / view.k, wy = (my - view.y) / view.k;
+  view.k = newK;
+  view.x = mx - wx * newK; view.y = my - wy * newK;
+  applyView();
+}, {passive: false});
+
+// node drag
+let drag = null;
+function onNodePointerDown(ev, n) {
+  ev.stopPropagation();
+  drag = {id: n.id, startX: ev.clientX, startY: ev.clientY, moved: false, nx: n.x, ny: n.y};
+  svg.setPointerCapture(ev.pointerId);
+  svg.addEventListener('pointermove', onDragMove);
+  svg.addEventListener('pointerup', onDragEnd, {once: true});
+}
+function onDragMove(ev) {
+  if (!drag) return;
+  const dx = ev.clientX - drag.startX, dy = ev.clientY - drag.startY;
+  if (Math.hypot(dx, dy) > 4) drag.moved = true;
+  if (!drag.moved) return;
+  const n = nodeById.get(drag.id);
+  n.x = drag.nx + dx / view.k;
+  n.y = drag.ny + dy / view.k;
+  layoutStatic();
+}
+function onDragEnd(ev) {
+  svg.removeEventListener('pointermove', onDragMove);
+  if (drag && !drag.moved) {
+    selectNode(drag.id);
+  }
+  drag = null;
+  updateLabels();
+}
+
+let hoverNode = null;
+function onNodeEnter(n, ev) {
+  state.hovered = n.id;
+  showTooltip(n, ev);
+  highlight(n.id);
+}
+function onNodeLeave() {
+  state.hovered = null;
+  tooltip.style.display = 'none';
+  highlight(state.selected);
+}
+function showTooltip(n, ev) {
+  const rect = stage.getBoundingClientRect();
+  tooltip.innerHTML = `<div class="t-name">${escapeHtml(n.label)}${n.nameZh ? `<span class="t-zh">${escapeHtml(n.nameZh)}</span>` : ''}</div>
+    <div class="t-meta">${escapeHtml(n.categoryLabel)} · 被依赖 ${n.inDegree} · 前置 ${n.outDegree}${n.isolated ? ' · 孤立' : ''}</div>`;
+  tooltip.style.display = 'block';
+  const x = ev.clientX - rect.left + 14, y = ev.clientY - rect.top + 14;
+  tooltip.style.left = Math.min(x, stage.clientWidth - 270) + 'px';
+  tooltip.style.top = Math.min(y, stage.clientHeight - 70) + 'px';
+}
+
+function highlight(id) {
+  const focus = id || state.selected || state.hovered;
+  if (!focus) {
+    for (const [nid, g] of nodeEls) g.classList.remove('dim','highlight');
+    for (const [e, line] of edgeEls) line.classList.remove('dim','highlight');
+    return;
+  }
+  const n = nodeById.get(focus);
+  if (!n) return;
+  const near = new Set([focus, ...n.neighbors]);
+  for (const [nid, g] of nodeEls) {
+    g.classList.toggle('dim', !near.has(nid));
+    g.classList.toggle('highlight', nid === focus);
+  }
+  for (const [e, line] of edgeEls) {
+    const on = e.source === focus || e.target === focus;
+    line.classList.toggle('dim', !on);
+    line.classList.toggle('highlight', on);
+  }
+}
+
+// ---------------- filters ----------------
+function nodeVisible(n) {
+  if (!state.categories.has(n.category)) return false;
+  if (state.hideIsolated && n.isolated && n.id !== state.selected && !matchSearch(n)) return false;
+  if (state.isolatedOnly && !n.isolated) return false;
+  if (state.neighborOnly && state.selected) {
+    return n.id === state.selected || n.neighbors.has(state.selected);
+  }
+  return true;
+}
+function edgeVisible(e) {
+  if (!state.edgeTypes.has(e.type)) return false;
+  if (!nodeVisible(e.s) || !nodeVisible(e.t)) return false;
+  return true;
+}
+function applyFilters() {
+  for (const n of nodes) {
+    const g = nodeEls.get(n.id);
+    if (!g) continue;
+    const visible = nodeVisible(n);
+    g.style.display = visible ? '' : 'none';
+  }
+  for (const [e, line] of edgeEls) {
+    line.style.display = edgeVisible(e) ? '' : 'none';
+  }
+  updateLabels();
+  highlight(state.selected || state.hovered);
+}
+function matchSearch(n) {
+  const q = state.search.trim().toLowerCase();
+  if (!q) return false;
+  return (n.label + ' ' + (n.nameZh || '') + ' ' + n.categoryLabel + ' ' + (n.categories||[]).join(' ')).toLowerCase().includes(q);
+}
+function applySearch() {
+  if (!state.search.trim()) { applyFilters(); return; }
+  for (const n of nodes) {
+    const g = nodeEls.get(n.id);
+    if (!g) continue;
+    const hit = matchSearch(n);
+    g.style.display = hit ? '' : 'none';
+  }
+  for (const [e, line] of edgeEls) {
+    const hit = matchSearch(e.s) || matchSearch(e.t);
+    line.style.display = hit ? '' : 'none';
+  }
+  updateLabels();
+}
+
+// ---------------- side panels ----------------
+function renderPanels() {
+  const cat = $('#categories');
+  cat.innerHTML = '';
+  for (const c of RAW.categories) {
+    const row = document.createElement('label');
+    row.className = 'cat-row';
+    row.innerHTML = `<input type="checkbox" ${state.categories.has(c.key)?'checked':''}>
+      <span class="dot" style="background:${c.color}"></span>
+      <span>${escapeHtml(c.label)}</span><span class="count">${c.count}</span>`;
+    row.querySelector('input').addEventListener('change', (ev) => {
+      if (ev.target.checked) state.categories.add(c.key); else state.categories.delete(c.key);
+      applyFilters();
+    });
+    cat.appendChild(row);
+  }
+  const et = $('#edgetypes');
+  et.innerHTML = '';
+  const labels = {required:'依赖 required', optional:'联动 optional', incompatible:'冲突 incompatible', embedded:'内置 embedded'};
+  const classes = {required:'', optional:'opt', incompatible:'inc', embedded:'emb'};
+  for (const key of ['required','optional','incompatible','embedded']) {
+    const count = RAW.edges.filter(e => e.type === key).length;
+    if (!count) continue;
+    const row = document.createElement('label');
+    row.className = 'edge-row';
+    row.innerHTML = `<input type="checkbox" ${state.edgeTypes.has(key)?'checked':''}>
+      <span class="line ${classes[key]}"></span><span>${labels[key]}</span><span class="count">${count}</span>`;
+    row.querySelector('input').addEventListener('change', (ev) => {
+      if (ev.target.checked) state.edgeTypes.add(key); else state.edgeTypes.delete(key);
+      applyFilters();
+    });
+    et.appendChild(row);
+  }
+
+  const s = RAW.stats;
+  const hubs = RAW.hubs.slice(0, 8).map(h => {
+    const node = nodeById.get(h.id);
+    const zh = node && node.nameZh ? `<span class="zh">· ${escapeHtml(node.nameZh)}</span>` : '';
+    return `<div class="hubline" data-id="${escapeAttr(h.id)}"><span>${escapeHtml(h.label)}${zh}</span><span>← ${h.inDegree}</span></div>`;
+  }).join('');
+  const iso = RAW.isolatedNodes.slice(0, 8).map(item => {
+    const node = nodeById.get(item.id);
+    const zh = node && node.nameZh ? `<span class="zh">· ${escapeHtml(node.nameZh)}</span>` : '';
+    return `<div class="hubline" data-id="${escapeAttr(item.id)}"><span>${escapeHtml(item.label)}${zh}</span><span>孤立</span></div>`;
+  }).join('');
+  $('#stats').innerHTML = `
+    <div>mod 节点 <b>${s.nodes}</b> · 关系边 <b>${s.edges}</b></div>
+    <div>依赖 <b>${s.required}</b> · 联动 <b>${s.optional}</b> · 冲突 <b>${s.incompatible}</b></div>
+    <div>前置库 <b>${s.libraryMods}</b> · 枢纽 <b>${s.hubs}</b> · 孤立 <b>${s.isolated}</b></div>
+    <div style="margin-top:6px;font-size:11px">节点大小 = 包内被依赖数 · 虚线 = 联动/可选 · 灰线 = 必需前置</div>
+    <div style="margin-top:8px;color:#6b6b66">被依赖最多</div>${hubs || '<div>—</div>'}
+    <div style="margin-top:8px;color:#6b6b66">孤立节点</div>${iso || '<div>—</div>'}`;
+  $('#stats').querySelectorAll('.hubline').forEach(el => {
+    el.addEventListener('click', () => {
+      const n = nodeById.get(el.dataset.id);
+      if (n) { selectNode(n.id); centerOn(n); }
+    });
+  });
+
+  const legend = $('#legend');
+  legend.innerHTML = RAW.categories.slice(0, 10).map(c => `<span class="lg"><i style="background:${c.color}"></i>${escapeHtml(c.label)}</span>`).join('')
+    + `<span class="lg"><span class="line"></span>依赖</span><span class="lg"><span class="line opt"></span>联动</span>`;
+}
+
+// ---------------- detail panel ----------------
+function selectNode(id) {
+  state.selected = id;
+  const n = nodeById.get(id);
+  if (!n) return;
+  renderDetail(n);
+  highlight(id);
+  applyFilters();
+  detail.classList.add('open');
+  centerSelectedCompact();
+}
+
+function centerSelectedCompact() {
+  if (!isCompact() || !state.selected) return;
+  const n = nodeById.get(state.selected);
+  if (!n) return;
+  const landscape = isLandscapeCompact();
+  view.k = Math.max(view.k, landscape ? 0.85 : 1.0);
+  if (landscape) {
+    const dw = detail.getBoundingClientRect().width || 300;
+    const visibleW = Math.max(180, stage.clientWidth - dw);
+    view.x = visibleW / 2 - n.x * view.k;
+    view.y = stage.clientHeight / 2 - n.y * view.k;
+  } else {
+    const visibleH = stage.clientHeight * 0.48;
+    view.x = stage.clientWidth / 2 - n.x * view.k;
+    view.y = visibleH / 2 - n.y * view.k;
+  }
+  applyView();
+}
+
+function renderDetail(n) {
+  const directDeps = outMap.get(n.id) || [];
+  const directDependents = inMap.get(n.id) || [];
+  const trans = transitiveDeps(n.id);
+  const chips = (n.categories || []).map(c => {
+    const meta = RAW.categories.find(x => x.key === c);
+    return `<span class="chip cat" style="border-left:3px solid ${meta ? meta.color : '#333'}">${escapeHtml(meta ? meta.label : c)}</span>`;
+  }).join('');
+  const badges = [
+    n.hub ? '<span class="badge hub">枢纽</span>' : '',
+    n.isLibrary ? '<span class="badge lib">前置库</span>' : '',
+    n.isolated ? '<span class="badge iso">孤立</span>' : '',
+    n.missing ? '<span class="badge iso">缺失</span>' : '',
+  ].join(' ');
+  const depItems = (list, incoming) => list.length ? list.map(e => {
+    const other = incoming ? nodeById.get(e.source) : nodeById.get(e.target);
+    const label = incoming ? '被依赖' : (e.type === 'optional' ? '可选前置' : e.type === 'incompatible' ? '冲突' : e.type === 'embedded' ? '内置' : '前置');
+    const cls = e.type === 'optional' ? 'opt' : e.type === 'incompatible' ? 'inc' : e.type === 'embedded' ? 'emb' : '';
+    return `<div class="dep-item" data-id="${escapeAttr(other.id)}">
+      <span class="sw" style="background:${other.color}"></span>
+      <span class="dep-main"><span>${escapeHtml(other.label)}</span>${other.nameZh ? `<span class="dep-zh">${escapeHtml(other.nameZh)}</span>` : ''}</span>
+      <span class="mini">${label}</span></div>`;
+  }).join('') : '<div class="dep-item muted">无</div>';
+  const transItems = trans.length ? trans.map(t => {
+    const other = nodeById.get(t.id);
+    return `<div class="dep-item" data-id="${escapeAttr(other.id)}">
+      <span class="sw" style="background:${other.color}"></span>
+      <span class="dep-main"><span>${escapeHtml(other.label)}</span>${other.nameZh ? `<span class="dep-zh">${escapeHtml(other.nameZh)}</span>` : ''}</span>
+      <span class="mini">第 ${t.depth} 层</span></div>`;
+  }).join('') : '<div class="dep-item muted">无</div>';
+  const body = n.body ? mdToHtml(n.body) : '';
+  const src = n.sourceUrl ? `<a class="link" href="${escapeAttr(n.sourceUrl)}" target="_blank" rel="noreferrer">Modrinth 页面 ↗</a>` : '';
+  detail.innerHTML = `
+    <button class="btn mobile-only" id="close-detail" style="float:right;margin:0 0 6px 8px">关闭</button>
+    <div class="detail-title">${escapeHtml(n.label)}${n.nameZh ? `<span class="detail-zh">${escapeHtml(n.nameZh)}</span>` : ''}</div>
+    <div class="detail-sub">${escapeHtml(n.version || '')} · ${escapeHtml(n.categoryLabel)} · 被依赖 ${n.inDegree} · 前置 ${n.outDegree}</div>
+    <div class="chips">${chips} ${badges}</div>
+    <div class="detail-desc">${escapeHtml(n.description || '')}</div>
+    <div class="actions2">
+      <button class="btn" id="focus-node">聚焦</button>
+      <button class="btn" id="neighbors-only">只看邻居</button>
+      ${src}
+    </div>
+    <div class="section"><h3>直接前置（它依赖谁）</h3>${depItems(directDeps, false)}</div>
+    <div class="section"><h3>被谁依赖</h3>${depItems(directDependents, true)}</div>
+    <div class="section"><h3>前置的前置（传递闭包）</h3>${transItems}</div>
+    ${body ? `<div class="section"><h3>Modrinth 介绍</h3><div class="detail-body">${body}</div></div>` : ''}
+    <div class="section"><h3>文件</h3><div class="detail-sub" style="word-break:break-all">${escapeHtml(n.path || '')}</div></div>`;
+  detail.querySelectorAll('.dep-item[data-id]').forEach(el => {
+    el.addEventListener('click', () => {
+      const other = nodeById.get(el.dataset.id);
+      if (other) { selectNode(other.id); centerOn(other); }
+    });
+  });
+  const closeBtn = detail.querySelector('#close-detail');
+  if (closeBtn) closeBtn.addEventListener('click', () => {
+    detail.classList.remove('open');
+    state.selected = null;
+    highlight(null);
+    applyFilters();
+  });
+  const focusBtn = detail.querySelector('#focus-node');
+  if (focusBtn) focusBtn.addEventListener('click', () => centerOn(n));
+  const nbrBtn = detail.querySelector('#neighbors-only');
+  if (nbrBtn) nbrBtn.addEventListener('click', () => {
+    state.neighborOnly = true;
+    applyFilters();
+    nbrBtn.classList.toggle('active', true);
+  });
+  detail.scrollTop = 0;
+}
+
+function transitiveDeps(startId) {
+  const seen = new Set([startId]);
+  const out = [];
+  let frontier = [{id: startId, depth: 0}];
+  while (frontier.length) {
+    const next = [];
+    for (const cur of frontier) {
+      for (const e of (outMap.get(cur.id) || [])) {
+        if (e.type === 'incompatible') continue;
+        if (seen.has(e.target)) continue;
+        seen.add(e.target);
+        const node = nodeById.get(e.target);
+        if (!node) continue;
+        out.push({id: e.target, depth: cur.depth + 1});
+        next.push({id: e.target, depth: cur.depth + 1});
+      }
+    }
+    frontier = next;
+  }
+  return out;
+}
+
+// ---------------- markdown (minimal, safe) ----------------
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+function mdToHtml(md) {
+  // Modrinth bodies mix Markdown and raw HTML. Strip dangerous/structural HTML
+  // first, turning the useful bits into Markdown, then render a safe subset.
+  let raw = String(md || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
+    .replace(/<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi, (_, l, t) => '\n' + '#'.repeat(+l) + ' ' + t + '\n')
+    .replace(/<li[^>]*>/gi, '\n- ')
+    .replace(/<img[^>]+src=["'](https?:\/\/[^"']+)["'][^>]*>/gi, (_, u) => '\n![](' + u + ')\n')
+    .replace(/<a[^>]+href=["'](https?:\/\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_, u, t) => '[' + t + '](' + u + ')')
+    .replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '**$1**')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|tr|blockquote)>/gi, '\n')
+    .replace(/<[^>]+>/g, '');
+  raw = raw.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  let s = escapeHtml(raw);
+  s = s.replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g, '<img alt="$1" src="$2" loading="lazy">');
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+  s = s.replace(/^######\s+(.*)$/gm, '<h4>$1</h4>')
+       .replace(/^#####\s+(.*)$/gm, '<h4>$1</h4>')
+       .replace(/^####\s+(.*)$/gm, '<h4>$1</h4>')
+       .replace(/^###\s+(.*)$/gm, '<h3>$1</h3>')
+       .replace(/^##\s+(.*)$/gm, '<h2>$1</h2>')
+       .replace(/^#\s+(.*)$/gm, '<h1>$1</h1>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/^\s*[-*]\s+(.*)$/gm, '<li>$1</li>');
+  s = s.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>');
+  s = s.split(/\n{2,}/).map(part => {
+    const t = part.trim();
+    if (!t) return '';
+    if (/^<(h[1-6]|ul|li|img|p|blockquote)/.test(t)) return t;
+    return '<p>' + t.replace(/\n/g, '<br>') + '</p>';
+  }).join('');
+  return s;
+}
+
+// ---------------- import ----------------
+const IMPORT_CATEGORY_ORDER = [
+  ['technology', '科技'], ['magic', '魔法'], ['adventure', '冒险'], ['worldgen', '世界生成'],
+  ['decoration', '建筑装饰'], ['building', '建筑'], ['storage', '存储物流'], ['transportation', '运输'],
+  ['food', '农业食物'], ['agriculture', '农业'], ['equipment', '装备工具'], ['combat', '战斗'],
+  ['mobs', '生物'], ['quests', '任务'], ['game-mechanics', '机制'], ['management', '管理'],
+  ['utility', '工具'], ['optimization', '优化'], ['library', '前置库'],
+];
+
+function setImportStatus(msg, isError = false) {
+  const el = $('#import-status');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.classList.toggle('error', !!isError);
+  el.style.display = msg ? 'block' : 'none';
+}
+
+function zhFor(project, fallback) {
+  const map = window.ZH_NAMES || {};
+  const key = (project && project.slug) || fallback || '';
+  return map[key] || '';
+}
+
+function importPrimaryCategory(cats) {
+  const set = new Set(cats || []);
+  for (const [key, label] of IMPORT_CATEGORY_ORDER) {
+    if (set.has(key)) return {key, label};
+  }
+  return {key: 'uncategorized', label: '未分类'};
+}
+
+function importParseIds(url) {
+  const m = String(url || '').match(/\/data\/([^/]+)\/versions\/([^/]+)\//);
+  return m ? [m[1], m[2]] : [null, null];
+}
+
+function importFilename(url) {
+  try { return decodeURIComponent(String(url || '').split('/').pop() || ''); }
+  catch (e) { return String(url || '').split('/').pop() || ''; }
+}
+
+async function importBulkFetch(endpoint, ids) {
+  const uniq = [...new Set((ids || []).filter(Boolean))];
+  const out = [];
+  for (let i = 0; i < uniq.length; i += 50) {
+    const part = uniq.slice(i, i + 50);
+    const q = encodeURIComponent(JSON.stringify(part));
+    const res = await fetch(`https://api.modrinth.com/v2/${endpoint}?ids=${q}`);
+    if (!res.ok) throw new Error(`Modrinth ${endpoint} 返回 ${res.status}`);
+    const arr = await res.json();
+    if (!Array.isArray(arr)) throw new Error(`Modrinth ${endpoint} 返回格式异常`);
+    out.push(...arr);
+  }
+  return out;
+}
+
+async function buildImportedData(index, files, versions, projects, fileName) {
+  const vmap = new Map(versions.map(v => [v.id, v]));
+  const pmap = new Map(projects.map(p => [p.id, p]));
+  const nodes = new Map();
+  const fileRows = [];
+
+  for (const f of files) {
+    const url = (f.downloads || [])[0] || '';
+    const [pidFromUrl, vid] = importParseIds(url);
+    const v = vmap.get(vid);
+    const pid = (v && v.project_id) || pidFromUrl;
+    const p = pid ? pmap.get(pid) : null;
+    const label = (p && p.title) || (v && v.name) || importFilename(url) || f.path || '?';
+    const cats = (p && p.categories) || [];
+    const cat = importPrimaryCategory(cats);
+    const id = pid ? `modrinth:${pid}` : `file:${f.path}`;
+    if (nodes.has(id)) continue;
+
+    nodes.set(id, {
+      id,
+      label,
+      projectId: pid || null,
+      versionId: vid || null,
+      version: (v && v.version_number) || '',
+      categories: cats,
+      category: cat.key,
+      categoryLabel: cat.label,
+      color: '#777777',
+      isLibrary: cats.includes('library'),
+      clientSide: (p && p.client_side) || null,
+      serverSide: (p && p.server_side) || null,
+      icon: (p && p.icon_url) || null,
+      description: (p && p.description) || '',
+      body: ((p && p.body) || '').slice(0, 8000),
+      slug: (p && p.slug) || '',
+      loaders: (v && v.loaders) || (p && p.loaders) || [],
+      downloads: (p && p.downloads) || 0,
+      sourceUrl: (p && p.slug) ? `https://modrinth.com/mod/${p.slug}` : '',
+      path: f.path || '',
+      url,
+      fileSize: f.fileSize || 0,
+      nameZh: zhFor(p, label),
+      missing: false,
+      inDegree: 0,
+      outDegree: 0,
+    });
+    fileRows.push(id);
+  }
+
+  const edges = [];
+  const edgeKeys = new Set();
+  const missingIds = new Set();
+  for (const [nodeId, n] of [...nodes]) {
+    const v = vmap.get(n.versionId);
+    if (!v) continue;
+    for (const dep of (v.dependencies || [])) {
+      const dtype = dep.dependency_type || 'required';
+      let targetPid = dep.project_id;
+      if (!targetPid && dep.version_id && vmap.has(dep.version_id)) {
+        targetPid = vmap.get(dep.version_id).project_id;
+      }
+      if (!targetPid) continue;
+      const targetId = `modrinth:${targetPid}`;
+      if (targetId === nodeId) continue;
+      if (!nodes.has(targetId)) {
+        if (dtype !== 'required') continue;
+        missingIds.add(targetPid);
+        nodes.set(targetId, {
+          id: targetId, label: `缺失前置 #${targetPid}`, projectId: targetPid,
+          versionId: null, version: '', categories: [], category: 'missing',
+          categoryLabel: '缺失前置', color: '#777777', isLibrary: false,
+          clientSide: null, serverSide: null, icon: null, description: '', body: '',
+          slug: '', loaders: [], downloads: 0, sourceUrl: '', path: '', url: '',
+          fileSize: 0, nameZh: '', missing: true, inDegree: 0, outDegree: 0,
+        });
+      }
+      const key = `${nodeId}|${targetId}|${dtype}`;
+      if (edgeKeys.has(key)) continue;
+      edgeKeys.add(key);
+      edges.push({source: nodeId, target: targetId, type: dtype});
+    }
+  }
+
+  if (missingIds.size) {
+    try {
+      const missingProjects = await importBulkFetch('projects', [...missingIds]);
+      for (const p of missingProjects) {
+        const n = nodes.get(`modrinth:${p.id}`);
+        if (!n) continue;
+        n.label = p.title || n.label;
+        n.description = p.description || '';
+        n.body = (p.body || '').slice(0, 8000);
+        n.icon = p.icon_url || null;
+        n.slug = p.slug || '';
+        n.sourceUrl = p.slug ? `https://modrinth.com/mod/${p.slug}` : '';
+        n.nameZh = zhFor(p, n.label);
+      }
+    } catch (e) {
+      console.warn('missing project lookup failed', e);
+    }
+  }
+
+  for (const e of edges) {
+    const s = nodes.get(e.source);
+    const t = nodes.get(e.target);
+    if (s) s.outDegree++;
+    if (t) t.inDegree++;
+  }
+
+  const realNodes = [...nodes.values()];
+  for (const n of realNodes) {
+    n.degree = n.inDegree + n.outDegree;
+    n.hub = n.inDegree >= 3 && !n.missing;
+    n.isolated = n.degree === 0 && !n.missing;
+  }
+
+  const catCounts = new Map();
+  for (const n of realNodes) catCounts.set(n.category, (catCounts.get(n.category) || 0) + 1);
+  const categories = [];
+  for (const [key, label] of IMPORT_CATEGORY_ORDER) {
+    if (catCounts.get(key)) categories.push({key, label, color: '#777777', count: catCounts.get(key)});
+  }
+  if (catCounts.get('uncategorized')) {
+    categories.push({key: 'uncategorized', label: '未分类', color: '#777777', count: catCounts.get('uncategorized')});
+  }
+  if (catCounts.get('missing')) {
+    categories.push({key: 'missing', label: '缺失前置', color: '#777777', count: catCounts.get('missing')});
+  }
+
+  const edgeCounts = {};
+  for (const e of edges) edgeCounts[e.type] = (edgeCounts[e.type] || 0) + 1;
+  const hubs = realNodes.filter(n => n.hub).sort((a, b) => b.inDegree - a.inDegree).slice(0, 12);
+  const isolated = realNodes.filter(n => n.isolated);
+  const missing = realNodes.filter(n => n.missing);
+  const deps = index.dependencies || {};
+  let loader = 'vanilla', loaderVersion = '';
+  for (const key of ['forge', 'neoforge', 'fabric-loader', 'quilt-loader']) {
+    if (deps[key]) {
+      loader = key === 'fabric-loader' ? 'fabric' : (key === 'quilt-loader' ? 'quilt' : key);
+      loaderVersion = deps[key];
+      break;
+    }
+  }
+
+  const hubData = hubs.map(n => ({id: n.id, label: n.label, nameZh: n.nameZh, inDegree: n.inDegree, category: n.category}));
+  const isolatedData = isolated.map(n => ({id: n.id, label: n.label, nameZh: n.nameZh, category: n.category}));
+  const missingData = missing.map(n => ({id: n.id, label: n.label, nameZh: n.nameZh, projectId: n.projectId}));
+
+  return {
+    pack: {
+      name: index.name || fileName,
+      version: index.versionId || '',
+      minecraft: deps.minecraft || '',
+      loader,
+      loaderVersion,
+      source: 'modrinth',
+      file: fileName,
+    },
+    nodes: realNodes,
+    edges,
+    categories,
+    stats: {
+      files: files.length,
+      nodes: realNodes.length,
+      edges: edges.length,
+      required: edgeCounts.required || 0,
+      optional: edgeCounts.optional || 0,
+      incompatible: edgeCounts.incompatible || 0,
+      embedded: edgeCounts.embedded || 0,
+      hubs: hubs.length,
+      isolated: isolated.length,
+      missing: missing.length,
+      libraryMods: realNodes.filter(n => n.isLibrary).length,
+    },
+    hubs: hubData,
+    isolatedNodes: isolatedData,
+    missingNodes: missingData,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+async function importPack(file) {
+  if (!JSZip) throw new Error('ZIP 解析库未加载');
+  if (!/\.(mrpack|zip)$/i.test(file.name)) throw new Error('请选择 .mrpack 或 .zip');
+  setImportStatus(`读取 ${file.name} ...`);
+  const buffer = await file.arrayBuffer();
+  const zip = await JSZip.loadAsync(buffer);
+  let idxFile = zip.file('modrinth.index.json');
+  if (!idxFile) {
+    const candidates = zip.file(/modrinth\.index\.json$/);
+    idxFile = candidates && candidates[0];
+  }
+  if (!idxFile) throw new Error('目前只支持 Modrinth .mrpack（未找到 modrinth.index.json）');
+  const index = JSON.parse(await idxFile.async('string'));
+  const files = index.files || [];
+
+  const versionIds = [];
+  for (const f of files) {
+    const [_, vid] = importParseIds((f.downloads || [])[0]);
+    if (vid) versionIds.push(vid);
+  }
+  setImportStatus(`解析 ${files.length} 个文件，查询 Modrinth ...`);
+  const versions = await importBulkFetch('versions', versionIds);
+  const projectIds = [...new Set(versions.map(v => v.project_id).filter(Boolean))];
+  const projects = await importBulkFetch('projects', projectIds);
+  setImportStatus('整理依赖与分类 ...');
+  const data = await buildImportedData(index, files, versions, projects, file.name);
+  if (!saveImportedRaw(data)) throw new Error('无法保存导入数据（存储空间不足）');
+  setImportStatus(`完成：${data.pack.name} · ${data.stats.nodes} 个节点`);
+  setTimeout(() => location.reload(), 350);
+}
+
+// ---------------- controls ----------------
+$('#search').addEventListener('input', (ev) => {
+  state.search = ev.target.value;
+  applySearch();
+});
+$('#fit').addEventListener('click', () => fitView());
+function relayout() {
+  recomputeCenters();
+  initPositions();
+  simulate(520);
+  stretchMobile();
+  layoutStatic();
+  fitView();
+  applyFilters();
+  if (state.selected && detail.classList.contains('open')) centerSelectedCompact();
+}
+$('#relayout').addEventListener('click', relayout);
+$('#import-btn').addEventListener('click', () => $('#import-file').click());
+$('#import-file').addEventListener('change', async (ev) => {
+  const file = ev.target.files && ev.target.files[0];
+  ev.target.value = '';
+  if (!file) return;
+  try {
+    await importPack(file);
+  } catch (err) {
+    console.error(err);
+    setImportStatus('导入失败：' + (err && err.message ? err.message : err), true);
+  }
+});
+$('#reset-import').addEventListener('click', () => {
+  clearImportedRaw();
+  location.reload();
+});
+if (importedValid) $('#reset-import').style.display = 'block';
+document.querySelectorAll('[data-view],[data-view2]').forEach(btn => {
+  btn.addEventListener('click', () => setView(btn.dataset.view || btn.dataset.view2));
+});
+function setView(v) {
+  state.view = v;
+  state.isolatedOnly = v === 'isolated';
+  state.neighborOnly = false;
+  if (v === 'all') state.hideIsolated = false;
+  if (v === 'isolated') state.hideIsolated = false;
+  document.querySelectorAll('[data-view],[data-view2]').forEach(b => {
+    const key = b.dataset.view || b.dataset.view2;
+    b.classList.toggle('active', key === v);
+  });
+  const hideBox = $('#hide-isolated');
+  if (hideBox) hideBox.checked = state.hideIsolated;
+  if (v === 'deps') {
+    state.edgeTypes = new Set(['required']);
+  } else if (v === 'links') {
+    state.edgeTypes = new Set(['optional']);
+  } else {
+    state.edgeTypes = new Set(['required','optional','incompatible','embedded']);
+  }
+  renderPanels();
+  applyFilters();
+  fitView();
+  if (state.selected && detail.classList.contains('open')) centerSelectedCompact();
+  if (isCompact()) $('#left').classList.remove('open');
+}
+$('#toggle-left').addEventListener('click', () => $('#left').classList.toggle('open'));
+$('#show-labels').addEventListener('change', (ev) => {
+  state.showAllLabels = ev.target.checked;
+  updateLabels();
+});
+$('#show-zh').addEventListener('change', (ev) => {
+  state.showZh = ev.target.checked;
+  updateLabels();
+});
+$('#hide-isolated').addEventListener('change', (ev) => {
+  state.hideIsolated = ev.target.checked;
+  applyFilters();
+  fitView();
+});
+
+window.addEventListener('resize', () => {
+  if (!nodes.length) return;
+  if (state.selected && detail.classList.contains('open')) centerSelectedCompact();
+  else fitView();
+});
+
+let layoutTimer = null;
+function onLayoutModeChange() {
+  clearTimeout(layoutTimer);
+  layoutTimer = setTimeout(relayout, 300);
+}
+if (landscapeQuery.addEventListener) landscapeQuery.addEventListener('change', onLayoutModeChange);
+else if (landscapeQuery.addListener) landscapeQuery.addListener(onLayoutModeChange);
+if (narrowQuery.addEventListener) narrowQuery.addEventListener('change', onLayoutModeChange);
+else if (narrowQuery.addListener) narrowQuery.addListener(onLayoutModeChange);
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape') {
+    state.selected = null; state.neighborOnly = false;
+    detail.classList.remove('open');
+    highlight(null); applyFilters();
+  }
+  if (ev.key === 'f' && !ev.ctrlKey && !ev.metaKey) fitView();
+});
+
+// ---------------- boot ----------------
+function boot() {
+  const p = RAW.pack;
+  $('#pack-name').textContent = p.name;
+  $('#pack-sub').textContent = `MC ${p.minecraft} · ${p.loader} ${p.loaderVersion} · ${RAW.stats.nodes} 个 mod · ${RAW.stats.edges} 条关系`;
+  renderPanels();
+  $('#show-labels').checked = state.showAllLabels;
+  $('#show-zh').checked = state.showZh;
+  $('#hide-isolated').checked = state.hideIsolated;
+  initPositions();
+  simulate(560);
+  stretchMobile();
+  buildSvg();
+  layoutStatic();
+  fitView();
+  applyFilters();
+  const sel = new URLSearchParams(location.search).get('select');
+  if (sel && nodeById.has(sel)) selectNode(sel);
+}
+boot();
+})();
+</script>
+</body>
+</html>

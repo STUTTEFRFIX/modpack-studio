@@ -1,0 +1,41 @@
+{
+  "formatVersion": 1,
+  "name": "Example GDL Pack",
+  "version": "1.0.0",
+  "summary": "A small example pack.",
+  "author": "ExampleAuthor",
+  "createdAt": "2026-10-29T12:00:00Z",
+  "icon": ".gdl/icon.png",
+  "dependencies": {
+    "minecraft": "1.20.1",
+    "modloaders": [
+      { "type": "forge", "version": "47.2.0", "primary": true }
+    ]
+  },
+  "entries": [
+    {
+      "type": "platform",
+      "hashes": {
+        "sha512": "44444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444",
+        "sha1": "4444444444444444444444444444444444444444",
+        "murmur2": 123456789
+      }
+    },
+    {
+      "type": "optional",
+      "description": "Optional shader files",
+      "platforms": [],
+      "overridePaths": ["config/iris", "shaderpacks/default"]
+    }
+  ],
+  "overrides": "overrides",
+  "serverOverrides": null,
+  "clientOverrides": null,
+  "source": {
+    "platform": "curseforge",
+    "projectId": 123456,
+    "fileId": 789012,
+    "name": "Example GDL Pack",
+    "url": null
+  }
+}

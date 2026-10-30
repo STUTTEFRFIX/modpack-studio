@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/gdlpack.schema.json",
+  "title": "GDLauncher gdlpack.json",
+  "description": "GDLauncher .gdlpack 清单。依据 GDLauncher 官方 Modpack Manifest Format 文档。",
+  "type": "object",
+  "required": [
+    "formatVersion",
+    "name",
+    "createdAt",
+    "dependencies",
+    "entries",
+    "overrides"
+  ],
+  "properties": {
+    "formatVersion": {
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "author": {
+      "type": "string"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "icon": {
+      "type": "string"
+    },
+    "dependencies": {
+      "type": "object",
+      "required": ["minecraft", "modloaders"],
+      "properties": {
+        "minecraft": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modloaders": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type", "version"],
+            "properties": {
+              "type": {
+                "enum": ["forge", "neoforge", "fabric", "quilt"]
+              },
+              "version": {
+                "type": "string"
+              },
+              "primary": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["type", "hashes"],
+            "properties": {
+              "type": {
+                "const": "platform"
+              },
+              "hashes": {
+                "type": "object",
+                "required": ["sha512", "sha1", "murmur2"],
+                "properties": {
+                  "sha512": {
+                    "type": "string",
+                    "pattern": "^[A-Fa-f0-9]{128}$"
+                  },
+                  "sha1": {
+                    "type": "string",
+                    "pattern": "^[A-Fa-f0-9]{40}$"
+                  },
+                  "murmur2": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "const": "optional"
+              },
+              "description": {
+                "type": "string"
+              },
+              "platforms": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["sha512", "sha1", "murmur2"],
+                  "properties": {
+                    "sha512": {
+                      "type": "string",
+                      "pattern": "^[A-Fa-f0-9]{128}$"
+                    },
+                    "sha1": {
+                      "type": "string",
+                      "pattern": "^[A-Fa-f0-9]{40}$"
+                    },
+                    "murmur2": {
+                      "type": "integer"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "overridePaths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": true
+          }
+        ]
+      }
+    },
+    "overrides": {
+      "type": "string",
+      "default": "overrides"
+    },
+    "serverOverrides": {
+      "type": ["string", "null"]
+    },
+    "clientOverrides": {
+      "type": ["string", "null"]
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "enum": ["curseforge", "modrinth"]
+        },
+        "projectId": {
+          "type": ["integer", "string"]
+        },
+        "fileId": {
+          "type": ["integer", "string"]
+        },
+        "versionId": {
+          "type": ["integer", "string"]
+        },
+        "name": {
+          "type": "string"
+        },
+        "url": {
+          "type": ["string", "null"]
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

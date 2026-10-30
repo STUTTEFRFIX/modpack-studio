@@ -1,0 +1,6 @@
+hash-format = "sha256"
+
+[[files]]
+file = "mods/example.pw.toml"
+hash = "6666666666666666666666666666666666666666666666666666666666666666"
+metafile = true
