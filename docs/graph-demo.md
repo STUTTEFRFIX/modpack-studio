@@ -1,5 +1,7 @@
 # 图优先原型（Graph Spike）
 
+> 在仓库中，构建产物是 `internal/webui/graph.html`，截图在 `docs/screenshots/`；本目录下的 `graph.html` 和 `graph-*.png` 是本地生成文件，不提交。
+
 这个目录不是最终实现，而是用来验证一个判断：
 
 > 对整合包作者来说，**依赖/联动关系图**比分类树更有用。
