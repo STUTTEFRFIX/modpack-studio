@@ -1,6 +1,6 @@
 # 交接文档 / Handover
 
-> 版本：0.2.1-import  
+> 版本：0.3.3-zh  
 > 目标读者：接手维护、发版或继续开发的人。  
 > 先读 README 了解产品，再读本文了解实现与坑。
 
@@ -14,6 +14,7 @@
 - 中文译名、搜索、筛选、详情面板
 - 桌面 / 手机竖屏 / 手机横屏三套布局
 - 浏览器内导入 Modrinth `.mrpack`
+- 浏览器内导入 CurseForge `.zip`（需要用户自己的 API Key）
 - Android APK（WebView + 系统文件选择器 + 应用私有存储）
 - Windows EXE（本地 HTTP 服务 + 默认浏览器）
 - Go 版格式识别与清单解析 CLI
@@ -122,7 +123,86 @@ cmd/modpack-studio
 
 - `graph.html` 内嵌 JSZip 3.10.1（MIT）。
 - 读取 `modrinth.index.json`；支持根目录或嵌套一层目录。
-- 当前只接受 Modrinth 格式；没有 `modrinth.index.json` 直接报错。
+- 先找 `modrinth.index.json`；没有就找 `manifest.json`（`manifestType: minecraftModpack`）走 CurseForge；
+- CurseForge 清单但包里带 `mods/*.jar` 时，直接走离线 jar 解析，不弹 API Key；
+- 两者都没有、或带 jar，就扫 `mods/**/*.jar` 走启动器导出解析（Prism/MultiMC、HMCL、PCL2、手打 zip 都适用）；
+- 完全没有可识别内容才报错，错误信息里会列出包的顶层目录。
+
+### 5.1.2 启动器导出 / 裸 zip
+
+- 不限定 base 目录，正则直接匹配 `(^|/)mods/(子目录/)*名字.jar`。
+- 每个 jar 用 JSZip 当嵌套 zip 打开，按优先级读：
+  `fabric.mod.json` → `quilt.mod.json` → `META-INF/(neoforge.)mods.toml` → `mcmod.info`。
+- `mods.toml` 用一个只覆盖 Forge 那套子集的极简 TOML 解析器（`[[mods]]`、`[[dependencies.<id>]]`、三引号字符串）。
+- 依赖：`depends`→required、`recommends`→optional、`breaks`→incompatible；`mandatory=false` 归 optional。
+- 内置 id（`minecraft`、`java`、`fabricloader`、`quilt_loader`、`forge`、`neoforge` 等）不建边。
+- 包名/加载器/版本从 `instance.cfg`、`mmc-pack.json`、`modpack.json`、CF `manifest.json` 里取。
+- 实测 100 个 jar 的合成包：Node 下 90 ms（解压 13 ms + 解析 77 ms），手机上会明显更慢，导入时有进度提示。
+
+### 5.1.3 并行扫描与提速
+
+实测（42 MB 包 / 60 个 jar，本机 Node）：
+
+| 做法 | 耗时 |
+|---|---|
+| JSZip 顺序解压 | 550 ms |
+| 主线程 6 路异步并发 | 624 ms（更慢，JS 单线程） |
+| 原生 `DecompressionStream` + Blob/Response | 2487 ms（每次调用开销大） |
+
+结论：纯异步并发没有意义，真正提速只能上 Worker。实现方式：
+
+- 主线程把 `ArrayBuffer` 复制一份给每个 worker（按 200 MB 内存预算限制 worker 数，最多 4 个）；
+- worker 里直接跑内联的 JSZip（源码用 `document.scripts` 取，不在包里重复存一份），解压 + 解析它分到的那批 jar；
+- worker 顺带算 jar 的 SHA-1，供 Modrinth 反查；
+- Worker 不可用、包太大或创建失败时自动回退主线程顺序处理。
+
+**APK 的页面地址**：从 `file:///android_asset/graph.html` 改成 `http://127.0.0.1/graph.html`。
+`MainActivity.shouldInterceptRequest` 直接返回 assets 里的 HTML，不监听任何端口。
+原因：`file://` 是不透明源，Worker 会被拦，`crypto.subtle` 也受限；`127.0.0.1` 同时满足「安全上下文」和「可建 Worker」。
+明文只对 `127.0.0.1` 放开，见 `android/res/xml/network_security_config.xml`。
+
+### 5.1.4 Modrinth 反查
+
+- 每个 jar 的 SHA-1 批量 `POST /v2/version_files`（500 个一批）→ project_id；
+- `GET /v2/projects?ids=[...]`（100 个一批）取分类、图标、简介、slug、下载量；
+- 分类按 `IMPORT_CATEGORY_ORDER` 映射，查不到的留在「未分类」；
+- 中文名优先用 jar 内 `assets/<ns>/lang/zh_cn.json` 里的 `itemGroup.<id>` 等键，其次查 `zh_names.json`；
+- 全程失败不影响导入，只是没有分类和译名。
+
+### 5.1.5 布局：分类扇区 + 区域圈
+
+- `recomputeCenters()` 把每个分类放到环上的一个扇区，扇区角宽由该分类的半径决定，
+  环半径一直放大到所有扇区放得下（`asin(r/R)` 累加 ≤ 1.75π），避免分类互相压；
+- 分类半径 `max(48, sqrt(节点数) × 46)`，`simulate()` 里超出半径就把节点拉回来；
+- 碰撞分离按 `r1 + r2 + 15`，纵向再多留 11（标签画在圆点下方），跑到收敛为止；
+- `renderClusterRegions()` 给每个还有可见节点的分类画虚线圆 + 名称，筛选后自动重画；
+- 导入的包没有官方分类色，`finalizePack()` 用一档十级暖灰分配，仍然只有黑白。
+
+**重要坑（已修）**：`onNodeEnter` 会调 `highlight()` 把其它节点压到 `.dim{opacity:.13}`。
+鼠标有 `pointerleave` 会复位，但**触屏抬手不触发**，于是 hover 永远挂着，整张图像"空了"——
+只有分类标签还看得见（它们在 `clusterLayer`，不在 `.node` 里）。
+现在用 `matchMedia('(hover: hover) and (pointer: fine)')` 区分设备，触屏不做 hover 高亮，
+拖动时也会清掉残留状态。
+
+### 5.1.6 主页介绍与中文翻译
+
+- 详情面板「主页介绍」渲染 `node.body`（Modrinth 正文，导入时截 8000 字符）；
+- 没有正文但有 slug 时，点翻译会先 `GET /v2/project/{slug}` 补拉；
+- 翻译走 MyMemory：`GET https://api.mymemory.translated.net/get?q=...&langpair=en|zh-CN`，
+  CORS 为 `*`，匿名额度约 5000 字符/天；
+- Google Translate / LibreTranslate 在本机网络下不可达，选型时已排除；
+- 默认只译「简介 + 正文前 700 字」，按句号/空格切 ≤420 字符一段，段间间隔 700ms；
+- 结果按 `modpack-studio:zh:<nodeId>` 存 localStorage，再打开不重复消耗额度；
+- 内容是中文时（CJK 占比 > 30%）跳过翻译。
+
+### 5.1.1 CurseForge 导入
+
+- 清单里只有 `projectID` / `fileID`，必须用官方 API 换数据，所以需要用户自己的 API Key。
+- `POST /v1/mods`（每批 50 个 `modIds`）拿名称、分类、简介、logo。
+- `GET /v1/mods/{modId}/files/{fileId}` 逐个拿依赖，6 个并发；95 个 mod 约十几秒。
+- `relationType` 映射：3 required / 2 optional / 5 incompatible / 1 embedded。
+- API Key 存在 `localStorage` 的 `modpack-studio:cf-key`，左侧面板可以清除。
+- API 对 `Origin: null`（APK 的 `file://`）和 `http://127.0.0.1` 都返回 CORS 头，允许 `x-api-key`、`content-type`。
 
 ### 5.2 Modrinth API
 
@@ -222,7 +302,7 @@ Windows 产物为 console 程序，双击后：
 
 1. **图构建逻辑重复**：Python `fetch_graph.py` 和 JS `buildImportedData()` 是两份实现。修改依赖/分类规则时必须同步。
 2. **Go 核心未接 UI**：`internal/pack` 只服务 CLI；运行时导入走 JS。长期建议把图构建统一到 Go，再由 HTTP API 提供。
-3. **只支持 Modrinth**：CurseForge 需要 API Key；MCBBS 需要 `fileApi`；MultiMC/packwiz 需要另外的解析。
+3. **格式覆盖**：Modrinth、CurseForge 已接入；MCBBS 需要 `fileApi`，MultiMC/packwiz 需要另外的解析。
 4. **中文名覆盖有限**：`zh_names.json` 目前只覆盖示例包；新包大多显示英文。
 5. **示例数据版权**：`internal/webui/graph.html` 和 `experiments/graph-demo/graph-data.json` 含 Modrinth 公开介绍文本；如用于正式发布，建议改为可再生成的数据或获得授权。
 6. **APK 签名**：测试签名；正式发布需换 release keystore。

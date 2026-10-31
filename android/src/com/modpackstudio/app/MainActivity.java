@@ -9,6 +9,8 @@ import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -17,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends Activity {
@@ -46,8 +49,25 @@ public class MainActivity extends Activity {
         webView.setBackgroundColor(PAPER);
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                // 页面用 http://127.0.0.1/ 这个假地址加载，实际内容从 assets 直接喂，
+                // 不监听任何端口。localhost 属于安全上下文，Worker 和 crypto.subtle 才可用。
+                if (isLocalHost(request.getUrl())) {
+                    try {
+                        return new WebResourceResponse("text/html", "utf-8",
+                                getAssets().open("graph.html"));
+                    } catch (Exception e) {
+                        return null;
+                    }
+                }
+                return null;
+            }
+
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                if (url != null && (url.startsWith("http://") || url.startsWith("https://"))) {
+                if (url == null) return false;
+                if (url.startsWith("http://127.0.0.1") || url.startsWith("https://127.0.0.1")) return false;
+                if (url.startsWith("http://") || url.startsWith("https://")) {
                     try {
                         startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
                         return true;
@@ -83,12 +103,7 @@ public class MainActivity extends Activity {
                     filePathCallback.onReceiveValue(null);
                 }
                 filePathCallback = callback;
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType("*/*");
-                try {
-                    startActivityForResult(Intent.createChooser(intent, "选择整合包"), REQ_PICK);
-                } catch (Exception e) {
+                if (!openDocumentPicker()) {
                     filePathCallback = null;
                     return false;
                 }
@@ -96,7 +111,62 @@ public class MainActivity extends Activity {
             }
         });
         setContentView(webView);
-        webView.loadUrl("file:///android_asset/graph.html");
+        webView.loadUrl(PAGE_URL);
+    }
+
+    private static final String PAGE_URL = "http://127.0.0.1/graph.html";
+
+    private boolean isLocalHost(Uri uri) {
+        return uri != null && "127.0.0.1".equals(uri.getHost());
+    }
+
+    /**
+     * 优先用 SAF 文档选择器（ACTION_OPEN_DOCUMENT）。ColorOS 会把
+     * ACTION_GET_CONTENT 路由到它自己的媒体选择器，只给“照片和视频/更多”，
+     * 根本翻不到 Downloads 里的 .zip。找不到文档选择器时再退回旧方式。
+     */
+    private boolean openDocumentPicker() {
+        Intent doc = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        doc.addCategory(Intent.CATEGORY_OPENABLE);
+        doc.setType("*/*");
+        doc.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try {
+            startActivityForResult(doc, REQ_PICK);
+            return true;
+        } catch (Exception first) {
+            // fall through
+        }
+        Intent legacy = new Intent(Intent.ACTION_GET_CONTENT);
+        legacy.addCategory(Intent.CATEGORY_OPENABLE);
+        legacy.setType("*/*");
+        legacy.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try {
+            startActivityForResult(legacy, REQ_PICK);
+            return true;
+        } catch (Exception second) {
+            return false;
+        }
+    }
+
+    /**
+     * 把选中的 content:// 文件先拷到应用缓存，再把 file:// URI 交给 WebView。
+     * 有些系统 / 网盘返回的 URI 是占位符或者关掉流就失效，直接交给 WebView 会读到 0 字节。
+     */
+    private Uri copyPickedToCache(Uri src) {
+        if (src == null) return null;
+        if ("file".equals(src.getScheme())) return src;
+        File out = new File(getCacheDir(), "picked-" + System.currentTimeMillis() + ".zip");
+        try (InputStream in = getContentResolver().openInputStream(src);
+             FileOutputStream os = new FileOutputStream(out)) {
+            if (in == null) return null;
+            byte[] buf = new byte[65536];
+            int n;
+            while ((n = in.read(buf)) != -1) os.write(buf, 0, n);
+            return Uri.fromFile(out);
+        } catch (Exception e) {
+            out.delete();
+            return null;
+        }
     }
 
     private File importedFile() {
@@ -132,12 +202,15 @@ public class MainActivity extends Activity {
             Uri[] result = null;
             if (resultCode == RESULT_OK && data != null) {
                 if (data.getData() != null) {
-                    result = new Uri[]{data.getData()};
+                    Uri local = copyPickedToCache(data.getData());
+                    result = new Uri[]{local != null ? local : data.getData()};
                 } else if (data.getClipData() != null) {
                     int count = data.getClipData().getItemCount();
                     result = new Uri[count];
                     for (int i = 0; i < count; i++) {
-                        result[i] = data.getClipData().getItemAt(i).getUri();
+                        Uri one = data.getClipData().getItemAt(i).getUri();
+                        Uri local = copyPickedToCache(one);
+                        result[i] = local != null ? local : one;
                     }
                 }
             }

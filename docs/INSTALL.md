@@ -32,6 +32,7 @@ adb install -r dist/ModpackStudio-dev.apk
 - Android 7.0+（minSdk 24 / targetSdk 34）
 - 默认使用脚本生成的调试签名；正式发布请替换 release keystore
 - 导入 `.mrpack` 需要访问 `https://api.modrinth.com`
+- 导入 CurseForge `.zip` 需要访问 `https://api.curseforge.com`，并在首次导入时填入自己的 API Key（存在本机）
 
 ## Windows EXE
 
@@ -77,8 +78,10 @@ go run ./cmd/modpack-studio-desktop
 
 ## 运行时限制
 
-- 导入仅支持 Modrinth `.mrpack`
-- 暂不支持 CurseForge / MCBBS / MultiMC / packwiz 导入
+- 导入支持 Modrinth `.mrpack`、CurseForge `.zip`（清单型需要 API Key）、带 `mods/*.jar` 的启动器导出
+- MCBBS / packwiz 的清单型包还不能在运行时导入（没有 jar 可读）
+- 中文翻译走 MyMemory 公共接口，匿名额度约 5000 字符/天；默认只译简介 + 正文前 700 字，结果缓存在本机
+- 翻译需要访问 `https://api.mymemory.translated.net`
 - 暂不支持编辑、更新、卸载、导出
 - 中文译名只覆盖 `experiments/graph-demo/zh_names.json` 中已有的 slug
 

@@ -11,10 +11,12 @@ Modpack Studio 读取整合包，拆出模组、分类、依赖和联动关系�
 - 节点大小 = 包内被依赖数
 - 实线 = 必需前置，虚线 = 可选联动
 - 点击节点查看介绍、直接前置、前置的前置、被依赖列表
+- 分类各占一块区域，带虚线范围和名称，一眼看出功能分组
 - 支持中文译名、搜索、筛选、手机竖屏/横屏、桌面
-- 支持在浏览器/APK/EXE 里直接导入 Modrinth `.mrpack`
+- 导入后可按文件哈希反查 Modrinth，补分类、图标、简介
+- 主页介绍可一键译成中文（MyMemory，按需触发、本地缓存）
 
-当前版本：`0.2.1-import`（alpha）。
+当前版本：`0.3.3-zh`（alpha）。
 
 ## 快速开始
 
@@ -39,17 +41,35 @@ Go 解析器支持：CurseForge、Modrinth、MCBBS、MultiMC/Prism、HMCL、HMCL
 
 ### 导入整合包
 
-在页面顶部点「导入」，选择 Modrinth `.mrpack`。
+在页面顶部点「导入」，选择整合包文件。浏览器内会自动识别两种格式。
 
-导入流程在浏览器内完成：
+**Modrinth `.mrpack`**（无需配置）：
 
-1. JSZip 解压 `.mrpack`
+1. JSZip 解压
 2. 读取 `modrinth.index.json`
 3. 调用 Modrinth API 拉取版本、项目、分类、依赖
 4. 在浏览器里生成图数据并保存
 5. 重载页面显示
 
-当前只支持 Modrinth `.mrpack`；CurseForge / MCBBS 尚未接入。
+**CurseForge `.zip`**（需要 API Key）：
+
+1. JSZip 解压，读取 `manifest.json`（`manifestType: minecraftModpack`）
+2. 用 `x-api-key` 调 `POST /v1/mods` 批量换 mod 名称、分类、简介
+3. 逐个查 `GET /v1/mods/{modId}/files/{fileId}` 拿依赖
+4. 同样生成图数据并保存
+
+第一次导入 CurseForge 包会弹窗要 Key，存在本机 `localStorage`，不会上传。在 <https://console.curseforge.com> 免费申请；左侧面板有「清除 CurseForge Key」。
+
+CurseForge 的公开 API 允许 `null`（APK 的 `file://`）和 `http://127.0.0.1` 跨域，所以 APK 和网页端都能直连。
+
+**启动器导出 / 带 jar 的 zip**（离线，不需要 Key）：
+
+1. 在包里任意位置找 `mods/**/*.jar`（兼容 Prism/MultiMC、HMCL、PCL2、以及手动打包的实例）
+2. 逐个打开 jar，读 `fabric.mod.json`、`quilt.mod.json`、`META-INF/mods.toml`、`META-INF/neoforge.mods.toml`、`mcmod.info`
+3. 拿 `id` / `name` / `version` / `depends` / `recommends` / `breaks` 建节点和边
+4. `instance.cfg` 的 `name`、`mmc-pack.json` 的组件用来还原整合包名、加载器和 MC 版本
+
+顺序是：`modrinth.index.json` → CurseForge `manifest.json`（且包里没有 jar 时才要 Key）→ `mods/*.jar`。带 jar 的 CurseForge 包会直接走离线解析，不会弹 Key。
 
 ### 构建 APK
 
@@ -115,7 +135,9 @@ modpack-studio/
 
 ## 当前限制
 
-- 运行时导入仅支持 Modrinth `.mrpack`
+- 运行时导入支持 Modrinth `.mrpack` 和 CurseForge `.zip`；后者需要 API Key
+- CurseForge 依赖要逐个文件查，95 个 mod 大约十几秒
+- MCBBS / MultiMC / packwiz 只有 Go 解析器，运行时还不能导入
 - Go 核心解析器还没有接到 Web UI；当前 UI 导入由页面内 JS 完成
 - 中文译名是人工映射，未知 mod 显示英文
 - 不支持编辑、更新、卸载、导出

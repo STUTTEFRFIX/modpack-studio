@@ -229,7 +229,7 @@
   /* Paper document theme: warm paper, ink lines, serif prose, mono metadata. */
   :root{
     --paper:#f7f4ea; --paper-2:#eee9dc; --paper-3:#e6dfcf;
-    --ink:#1b1a17; --ink-soft:#454139; --ink-muted:#736d60;
+    --ink:#1b1a17; --ink-soft:#454139; --ink-muted:#665f52;
     --rule:#cfc7b5; --rule-strong:#a9a08d;
     --bg:var(--paper); --panel:var(--paper); --panel2:var(--paper-2); --border:var(--rule);
     --text:var(--ink); --muted:var(--ink-muted); --accent:var(--ink); --gold:var(--ink);
@@ -259,6 +259,11 @@
     font-family:var(--font-mono);font-size:11px;letter-spacing:.03em}
   .btn:hover{background:var(--paper-2);border-color:var(--ink)}
   .btn.active{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+  /* One primary action per page: 导入 is the only filled control. */
+  .btn.primary{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:500}
+  .btn.primary:hover{background:var(--ink-soft);border-color:var(--ink-soft);color:var(--paper)}
+  .btn:focus-visible,.search input:focus-visible,a:focus-visible,
+  .cat-row:focus-within,.edge-row:focus-within{outline:2px solid var(--ink);outline-offset:2px}
   aside{background:var(--paper)}
   #left{border-right:1px solid var(--rule)}
   #detail{border-left:1px solid var(--rule)}
@@ -292,6 +297,9 @@
   .node.dim{opacity:.13}
   .node-label{font-family:var(--font-sans);fill:var(--ink);stroke:var(--paper);stroke-width:3.2px}
   .node.hub .node-label{font-family:var(--font-serif);font-weight:700;fill:var(--ink)}
+  .cluster-label{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;fill:var(--ink-muted);
+    opacity:.72;text-anchor:middle;pointer-events:none;paint-order:stroke;stroke:var(--paper);stroke-width:3px}
+  .cluster-region{fill:none;stroke:var(--rule-strong);stroke-width:1;stroke-dasharray:1 5;opacity:.5}
   .node-label-zh{font-family:var(--font-sans);font-size:9.5px;fill:var(--ink-muted);text-anchor:middle;
     pointer-events:none;paint-order:stroke;stroke:var(--paper);stroke-width:2.6px;stroke-linejoin:round}
   .node.hub .node-label-zh{font-size:10.5px;fill:var(--ink-soft);font-weight:500}
@@ -303,6 +311,13 @@
   #legend{background:rgba(247,244,234,.94);border:1px solid var(--rule);border-radius:0;
     font-family:var(--font-mono);font-size:10px;letter-spacing:.02em;color:var(--ink-muted);
     box-shadow:none;padding:7px 9px}
+  /* Every filter combination needs a way back out. */
+  #stage-empty{position:absolute;inset:0;display:none;place-items:center;z-index:6;padding:0 28px;text-align:center}
+  #stage-empty.show{display:grid}
+  #stage-empty .es{font-family:var(--font-serif);font-size:13.5px;line-height:1.9;color:var(--ink-muted);
+    background:rgba(247,244,234,.92);padding:14px 18px;border:1px solid var(--rule);max-width:320px}
+  #stage-empty .es b{font-family:var(--font-sans);font-weight:600;color:var(--ink)}
+  #stage-empty .es .btn{margin-top:10px}
   #tooltip{background:var(--paper);border:1px solid var(--ink);border-radius:2px;color:var(--ink);
     box-shadow:3px 3px 0 rgba(27,26,23,.12);font-family:var(--font-sans)}
   #tooltip .t-name{font-family:var(--font-serif);color:var(--ink)}
@@ -313,10 +328,23 @@
     font-family:var(--font-sans);font-size:12px;line-height:1.5;text-align:center;border-radius:2px;
     box-shadow:3px 3px 0 rgba(27,26,23,.16)}
   #import-status.error{background:#7f1d1d;color:#fff}
+  #cf-modal{position:fixed;inset:0;z-index:10002;display:none;place-items:center;padding:20px;
+    background:rgba(27,26,23,.34)}
+  #cf-modal.show{display:grid}
+  #cf-modal .card{background:var(--paper);border:1px solid var(--ink);max-width:430px;width:100%;
+    padding:18px 18px 16px;box-shadow:5px 5px 0 rgba(27,26,23,.16);font-family:var(--font-sans)}
+  #cf-modal .eyebrow{font-family:var(--font-mono);font-size:9px;letter-spacing:.18em;color:var(--ink-muted)}
+  #cf-modal h3{font-family:var(--font-serif);font-size:17px;line-height:1.35;margin:4px 0 8px;color:var(--ink)}
+  #cf-modal p{font-size:12.5px;line-height:1.75;color:var(--ink-soft);margin:0 0 10px}
+  #cf-modal .note{font-size:11px;line-height:1.6;color:var(--ink-muted);margin:8px 0 0}
+  #cf-modal input{width:100%;padding:8px 10px;border:1px solid var(--rule-strong);border-radius:2px;
+    background:var(--paper);color:var(--ink);font-family:var(--font-mono);font-size:12px}
+  #cf-modal input:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+  #cf-modal .row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
   #detail .empty{font-family:var(--font-serif);color:var(--ink-muted);font-size:13px;line-height:1.9}
   .detail-title{font-family:var(--font-serif);font-weight:700;color:var(--ink);font-size:22px;letter-spacing:.01em}
-  .detail-zh{font-family:var(--font-sans);font-size:14px;font-weight:400;color:var(--ink-muted);
-    margin-left:8px;letter-spacing:.02em;white-space:nowrap}
+  .detail-zh{display:block;font-family:var(--font-sans);font-size:13px;font-weight:400;color:var(--ink-muted);
+    margin:3px 0 0;letter-spacing:.02em;line-height:1.45;white-space:normal}
   .hubline .zh{font-family:var(--font-sans);font-size:10px;color:var(--ink-muted);margin-left:4px}
   .dep-main{display:flex;flex-direction:column;min-width:0;line-height:1.35}
   .dep-main > span:first-child{color:var(--ink-soft)}
@@ -331,6 +359,11 @@
   .badge.lib{color:var(--ink-soft);border-color:var(--rule-strong);border-style:dashed}
   .badge.iso{color:var(--ink-soft);border-color:var(--rule-strong)}
   .detail-desc{font-family:var(--font-serif);color:var(--ink-soft);font-size:13px;line-height:1.75}
+  .detail-desc.zh,.detail-body.zh{color:var(--ink)}
+  .detail-desc.zh{border-left:2px solid var(--rule-strong);padding-left:8px;margin-top:6px}
+  .zh-note{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;color:var(--ink-muted);
+    margin:6px 0 2px;text-transform:uppercase}
+  .zh-status{font-family:var(--font-mono);font-size:10px;color:var(--ink-muted);align-self:center}
   .detail-body{font-family:var(--font-serif);color:var(--ink-soft);font-size:12.8px;line-height:1.8;
     border-top:1px solid var(--rule)}
   .detail-body h1,.detail-body h2,.detail-body h3,.detail-body h4{font-family:var(--font-serif);color:var(--ink)}
@@ -351,6 +384,7 @@
   .link{color:var(--ink);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
   .actions2 .btn{background:transparent}
   @media (max-width:980px){
+    .actions .btn{min-height:34px;padding:7px 11px}
     #left,#detail{box-shadow:6px 6px 0 rgba(27,26,23,.10)}
     #detail{border-top:1px solid var(--rule);background:var(--paper)}
     #figure-caption{left:14px;top:12px;font-size:8px}
@@ -376,7 +410,7 @@
     .search::before{top:4px;font-size:14px}
     .actions .desktop-only{display:none}
     .mobile-only{display:inline-flex}
-    .btn{padding:5px 7px;font-size:10px}
+    .btn{padding:5px 7px;font-size:10px;min-height:30px}
     main{display:block;position:relative}
     #stage{position:absolute;inset:0}
     #left{position:absolute;left:6px;top:6px;bottom:6px;width:min(220px,34vw);z-index:25;
@@ -429,17 +463,24 @@
     <div class="search"><input id="search" placeholder="搜索 mod / 中文名 / 分类 / 前置..." autocomplete="off"></div>
     <div class="actions">
       <button class="btn mobile-only" id="toggle-left">筛选</button>
-      <button class="btn" id="import-btn">导入</button>
-      <button class="btn desktop-only" data-view="all">全部</button>
-      <button class="btn desktop-only" data-view="deps">只看依赖</button>
-      <button class="btn desktop-only" data-view="links">只看联动</button>
-      <button class="btn desktop-only" data-view="isolated">只看孤立</button>
+      <button class="btn primary" id="import-btn">导入</button>
       <button class="btn" id="fit">适配</button>
       <button class="btn" id="relayout">重排</button>
     </div>
   </header>
   <input type="file" id="import-file" accept=".mrpack,.zip,application/zip" style="display:none">
   <div id="import-status"></div>
+  <div id="cf-modal"><div class="card">
+    <div class="eyebrow">CURSEFORGE</div>
+    <h3>需要 CurseForge API Key</h3>
+    <p>CurseForge 整合包里只有 projectID 和 fileID，得用官方 API 才能换成 mod 名称和依赖关系。</p>
+    <input id="cf-key-input" type="password" placeholder="粘贴 API Key" autocomplete="off" spellcheck="false">
+    <p class="note">在 console.curseforge.com 免费申请。Key 只存在本机，不会上传。</p>
+    <div class="row">
+      <button class="btn primary" id="cf-key-ok">保存并继续</button>
+      <button class="btn" id="cf-key-cancel">取消</button>
+    </div>
+  </div></div>
   <main>
     <aside id="left">
       <div class="panel">
@@ -454,6 +495,7 @@
         <label class="cat-row"><input type="checkbox" id="show-zh"> 显示中文译名</label>
         <label class="cat-row"><input type="checkbox" id="hide-isolated"> 隐藏孤立节点</label>
         <button class="btn" id="reset-import" style="display:none;width:100%;margin-top:6px">返回示例</button>
+        <button class="btn" id="clear-cf-key" style="display:none;width:100%;margin-top:6px">清除 CurseForge Key</button>
       </div>
       <div class="panel">
         <h2>分类</h2>
@@ -473,6 +515,7 @@
       <svg id="graph" xmlns="http://www.w3.org/2000/svg"></svg>
       <div id="legend"></div>
       <div id="page-mark">MODPACK STUDIO · 01</div>
+      <div id="stage-empty"><div class="es"><b>没有可显示的 mod</b><br>当前筛选或搜索把整张图都排除了。<br><button class="btn" id="stage-empty-reset">重置筛选</button></div></div>
       <div id="tooltip"></div>
     </section>
     <aside id="detail"><div class="empty">点击图上的 mod 查看详情、前置链和被依赖关系。</div></aside>
@@ -551,7 +594,7 @@ const state = {
   search: '',
   selected: null,
   hovered: null,
-  showAllLabels: !isCompact(),
+  showAllLabels: true,
   hideIsolated: isCompact(),
   showZh: true,
   isolatedOnly: false,
@@ -593,39 +636,53 @@ function nodeRadius(n) {
   return Math.min(30, 6.5 + Math.sqrt(n.inDegree) * 4.4);
 }
 
-function categoryCenter(key) {
-  // bookshelf-style: libraries in the middle, content around them.
-  // On phones use a taller ellipse so the graph fits a portrait viewport.
-  const angles = {
-    technology: -18, decoration: 34, building: 34, adventure: 82, worldgen: 112,
-    food: 148, agriculture: 148, equipment: 178, combat: 202, mobs: 228,
-    storage: 258, transportation: 278, utility: 306, management: 330,
-    magic: 214, quests: 66, 'game-mechanics': 246, optimization: 48,
-  };
-  if (key === 'library') return {x: 0, y: 0};
-  const mobile = isPortraitCompact();
-  if (mobile) {
-    const anchors = {
-      technology: [0, -250], decoration: [-150, -120], building: [-150, -120],
-      utility: [150, -150], optimization: [0, -370], adventure: [0, 290],
-      worldgen: [-150, 180], food: [150, 180], agriculture: [150, 180],
-      equipment: [-200, 80], combat: [200, 80], storage: [-170, 300],
-      transportation: [170, 300], magic: [-210, 0], mobs: [210, 190],
-      management: [200, -30], quests: [0, 140], 'game-mechanics': [0, 50],
-      uncategorized: [0, 380], missing: [0, 380],
-    };
-    const a = anchors[key];
-    if (a) return {x: a[0], y: a[1]};
-  }
-  const idx = RAW.categories.findIndex(c => c.key === key);
-  const deg = (angles[key] ?? (idx * 47 - 90)) * Math.PI / 180;
-  const rx = key === 'optimization' ? 150 : 300;
-  const ry = key === 'optimization' ? 190 : 300;
-  return {x: Math.cos(deg) * rx, y: Math.sin(deg) * ry};
-}
-let centers = new Map(RAW.categories.map(c => [c.key, categoryCenter(c.key)]));
+let centers = new Map();
+let catRadius = new Map();
+
+// 分类中心按“扇区不重叠”排布：每个分类占的角宽由它自己的半径决定，
+// 环半径一直放大到所有扇区都放得下为止，这样功能分组不会互相压。
 function recomputeCenters() {
-  centers = new Map(RAW.categories.map(c => [c.key, categoryCenter(c.key)]));
+  const counts = new Map();
+  for (const n of nodes) counts.set(n.category, (counts.get(n.category) || 0) + 1);
+  const keys = RAW.categories.map(c => c.key).filter(k => counts.get(k));
+  const portrait = isPortraitCompact();
+
+  const radius = new Map();
+  for (const k of keys) {
+    const c = counts.get(k) || 1;
+    radius.set(k, Math.max(48, Math.sqrt(c) * 46));
+  }
+
+  const ring = keys.filter(k => k !== 'library');
+  const libR = radius.get('library') || 0;
+  const maxRing = ring.reduce((m, k) => Math.max(m, radius.get(k)), 0);
+
+  let R = Math.max(170, Math.sqrt(Math.max(1, nodes.length)) * 40) + libR;
+  const slotOf = (k) => Math.asin(Math.min(0.92, radius.get(k) / R)) * 2;
+  for (let i = 0; i < 24; i++) {
+    const need = ring.reduce((s, k) => s + slotOf(k), 0);
+    if (need <= Math.PI * 1.75 && R >= libR + maxRing + 36) break;
+    R *= 1.14;
+  }
+
+  const out = new Map();
+  if (counts.get('library')) out.set('library', {x: 0, y: 0});
+
+  const ordered = [...ring].sort((a, b) =>
+    (counts.get(b) || 0) - (counts.get(a) || 0) || a.localeCompare(b));
+  const total = ordered.reduce((s, k) => s + slotOf(k), 0);
+  let ang = -Math.PI / 2 - total / 2;
+  for (const k of ordered) {
+    const half = slotOf(k) / 2;
+    ang += half;
+    out.set(k, {
+      x: Math.cos(ang) * R,
+      y: Math.sin(ang) * R * (portrait ? 1.22 : 1),
+    });
+    ang += half;
+  }
+  centers = out;
+  catRadius = radius;
 }
 
 function jitter(id) {
@@ -635,10 +692,12 @@ function jitter(id) {
 }
 
 function initPositions() {
+  if (!centers.size) recomputeCenters();
   for (const n of nodes) {
     const c = centers.get(n.category) || {x: 0, y: 0};
-    n.x = c.x + jitter(n.id + 'x') * 150;
-    n.y = c.y + jitter(n.id + 'y') * 150;
+    const spread = Math.min(140, Math.max(26, (catRadius.get(n.category) || 90) * 0.6));
+    n.x = c.x + jitter(n.id + 'x') * spread;
+    n.y = c.y + jitter(n.id + 'y') * spread;
     n.vx = n.vy = 0;
   }
 }
@@ -682,6 +741,15 @@ function simulate(ticks = 520) {
       const c = centers.get(n.category) || {x: 0, y: 0};
       n.vx += (c.x - n.x) * 0.0045 * alpha;
       n.vy += (c.y - n.y) * 0.0045 * alpha;
+      // 超出本分类半径就往回拉，保证功能分组是紧凑的一团
+      const rr = catRadius.get(n.category) || 130;
+      const dx = n.x - c.x, dy = n.y - c.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      if (dist > rr) {
+        const f = (dist - rr) * 0.07 * alpha;
+        n.vx -= dx / dist * f;
+        n.vy -= dy / dist * f;
+      }
       n.vx += -n.x * 0.0008 * alpha;
       n.vy += -n.y * 0.0008 * alpha;
       n.vx *= 0.86; n.vy *= 0.86;
@@ -690,22 +758,27 @@ function simulate(ticks = 520) {
       n.x += n.vx; n.y += n.vy;
     }
   }
-  // separate overlapping nodes a little
-  for (let pass = 0; pass < 80; pass++) {
+  // 推开重叠：标签是画在圆点下方的，所以纵向要比横向多留一点；
+  // 一直推到没有碰撞或到上限为止。
+  for (let pass = 0; pass < 220; pass++) {
+    let hits = 0;
     for (let i = 0; i < N; i++) {
       const a = nodes[i];
       for (let j = i + 1; j < N; j++) {
         const b = nodes[j];
-        let dx = b.x - a.x, dy = b.y - a.y;
-        const d = Math.max(1, Math.hypot(dx, dy));
-        const min = a.r + b.r + 8;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const d = Math.hypot(dx, dy) || 0.01;
+        const min = a.r + b.r + 15 + (Math.abs(dy) > Math.abs(dx) ? 11 : 0);
         if (d < min) {
           const push = (min - d) * 0.5;
-          a.x -= dx / d * push; a.y -= dy / d * push;
-          b.x += dx / d * push; b.y += dy / d * push;
+          const ux = dx / d, uy = dy / d;
+          a.x -= ux * push; a.y -= uy * push;
+          b.x += ux * push; b.y += uy * push;
+          hits++;
         }
       }
     }
+    if (!hits) break;
   }
 }
 
@@ -714,8 +787,12 @@ let view = {x: 0, y: 0, k: 1};
 const viewport = document.createElementNS(NS, 'g');
 viewport.setAttribute('id', 'viewport');
 svg.appendChild(viewport);
+const regionLayer = document.createElementNS(NS, 'g');
+const clusterLayer = document.createElementNS(NS, 'g');
 const edgesLayer = document.createElementNS(NS, 'g');
 const nodesLayer = document.createElementNS(NS, 'g');
+viewport.appendChild(regionLayer);
+viewport.appendChild(clusterLayer);
 viewport.appendChild(edgesLayer);
 viewport.appendChild(nodesLayer);
 
@@ -784,7 +861,46 @@ function buildSvg() {
   layoutStatic();
 }
 
+// 每个功能分组画一个虚线范围 + 上方分类名；只画当前筛选下还有节点的分组，
+// 否则筛掉以后画布上会剩一堆没用的标签。
+function renderClusterRegions() {
+  if (!clusterLayer || !regionLayer) return;
+  clusterLayer.innerHTML = '';
+  regionLayer.innerHTML = '';
+  const byCat = new Map();
+  for (const n of nodes) {
+    const g = nodeEls.get(n.id);
+    if (g && g.style.display === 'none') continue;
+    if (!byCat.has(n.category)) byCat.set(n.category, []);
+    byCat.get(n.category).push(n);
+  }
+  for (const [key, list] of byCat) {
+    const c = centers.get(key);
+    const meta = RAW.categories.find(x => x.key === key);
+    if (!c || !meta || !list.length) continue;
+    let rad = 0;
+    for (const n of list) rad = Math.max(rad, Math.hypot(n.x - c.x, n.y - c.y) + n.r);
+    const rr = Math.max(44, rad + 20);
+
+    const circle = document.createElementNS(NS, 'circle');
+    circle.setAttribute('class', 'cluster-region');
+    circle.setAttribute('cx', c.x);
+    circle.setAttribute('cy', c.y);
+    circle.setAttribute('r', rr);
+    regionLayer.appendChild(circle);
+
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('class', 'cluster-label');
+    t.setAttribute('x', c.x);
+    t.setAttribute('y', c.y - rr - 8);
+    t.textContent = meta.label;
+    clusterLayer.appendChild(t);
+  }
+}
+function renderClusterLabels() { renderClusterRegions(); }
+
 function layoutStatic() {
+  renderClusterLabels();
   for (const e of edges) {
     const line = edgeEls.get(e);
     line.setAttribute('x1', e.s.x); line.setAttribute('y1', e.s.y);
@@ -810,6 +926,12 @@ function labelTextWidth(text, size) {
   return w;
 }
 
+// Re-run label placement once per frame when zoom changes.
+var labelRaf = 0;
+function scheduleLabels() {
+  if (labelRaf) return;
+  labelRaf = requestAnimationFrame(() => { labelRaf = 0; updateLabels(); });
+}
 function updateLabels() {
   const placed = [];
   const compact = isCompact();
@@ -827,7 +949,7 @@ function updateLabels() {
     }
     let show = state.showAllLabels || n.id === state.selected || n.id === state.hovered ||
       n.inDegree >= 3 || n.degree >= 5 || matchSearch(n);
-    if (compact && n.id !== state.selected && n.id !== state.hovered && !matchSearch(n)) {
+    if (!state.showAllLabels && compact && n.id !== state.selected && n.id !== state.hovered && !matchSearch(n)) {
       show = landscape ? (n.inDegree >= 2 || n.degree >= 4) : n.inDegree >= 3;
     }
     if (!show) {
@@ -835,18 +957,27 @@ function updateLabels() {
       if (labelZh) labelZh.style.display = 'none';
       continue;
     }
-    const size = n.hub ? 12 : 10.5;
-    const zhSize = n.hub ? 10.5 : 9.5;
+    // Keep labels near-constant in screen pixels. Zoomed far out they would
+    // shrink to unreadable specks, so they are dropped instead of piled up.
+    const k = Math.max(view.k || 1, 0.001);
+    const comp = Math.min(1 / k, 3);
+    if ((n.hub ? 11.5 : 10) * k * comp < 5.5) {
+      label.style.display = 'none';
+      if (labelZh) labelZh.style.display = 'none';
+      continue;
+    }
+    const size = (n.hub ? 12 : 10.5) * comp;
+    const zhSize = (n.hub ? 10.5 : 9.5) * comp;
     const zh = (state.showZh && n.nameZh) ? n.nameZh : '';
     const enW = labelTextWidth(n.label, size);
     const zhW = zh ? labelTextWidth(zh, zhSize) : 0;
     const w = Math.max(10, enW, zhW) + 6;
     const lineGap = zh ? zhSize + 1 : 0;
     const candidates = [
-      {x: n.x, y: n.y + n.r + 12, anchor: 'middle', dir: 'down'},
-      {x: n.x, y: n.y - n.r - 6, anchor: 'middle', dir: 'up'},
-      {x: n.x + n.r + 6, y: n.y + 4, anchor: 'start', dir: 'right'},
-      {x: n.x - n.r - 6, y: n.y + 4, anchor: 'end', dir: 'left'},
+      {x: n.x, y: n.y + n.r + 10 * comp, anchor: 'middle', dir: 'down'},
+      {x: n.x, y: n.y - n.r - 5 * comp, anchor: 'middle', dir: 'up'},
+      {x: n.x + n.r + 5 * comp, y: n.y + 3.5 * comp, anchor: 'start', dir: 'right'},
+      {x: n.x - n.r - 5 * comp, y: n.y + 3.5 * comp, anchor: 'end', dir: 'left'},
     ];
     let chosen = null;
     for (const c of candidates) {
@@ -875,8 +1006,10 @@ function updateLabels() {
     label.setAttribute('x', chosen.x - n.x);
     label.setAttribute('y', chosen.enBaseY - n.y);
     label.setAttribute('text-anchor', chosen.anchor);
+    label.style.fontSize = size.toFixed(2) + 'px';
     label.style.display = '';
     if (labelZh) {
+      labelZh.style.fontSize = zhSize.toFixed(2) + 'px';
       labelZh.setAttribute('x', chosen.x - n.x);
       labelZh.setAttribute('y', chosen.zhBaseY - n.y);
       labelZh.setAttribute('text-anchor', chosen.anchor);
@@ -895,6 +1028,7 @@ function labelPriority(n) {
 
 function applyView() {
   viewport.setAttribute('transform', `translate(${view.x},${view.y}) scale(${view.k})`);
+  scheduleLabels();
 }
 
 function fitView(animate = false) {
@@ -927,6 +1061,12 @@ const pointers = new Map();
 
 svg.addEventListener('pointerdown', (ev) => {
   if (ev.target.closest('.node')) return;
+  if (!canHover) {
+    // 触屏拖动时顺手清掉残留的 hover，否则整图一直是暗的
+    state.hovered = null;
+    tooltip.style.display = 'none';
+    highlight(state.selected);
+  }
   pointers.set(ev.pointerId, {x: ev.clientX, y: ev.clientY});
   svg.setPointerCapture(ev.pointerId);
   if (pointers.size === 1) {
@@ -1006,11 +1146,17 @@ function onDragEnd(ev) {
   updateLabels();
 }
 
+// 触屏没有真正的 hover：点一下会触发 pointerenter，但抬手不会触发 pointerleave，
+// 高亮会把其它节点压到 13% 透明度，看起来就像"整张图空了"。
+const canHover = typeof window.matchMedia === 'function'
+  ? window.matchMedia('(hover: hover) and (pointer: fine)').matches
+  : true;
+
 let hoverNode = null;
 function onNodeEnter(n, ev) {
   state.hovered = n.id;
   showTooltip(n, ev);
-  highlight(n.id);
+  if (canHover) highlight(n.id);
 }
 function onNodeLeave() {
   state.hovered = null;
@@ -1075,6 +1221,19 @@ function applyFilters() {
   }
   updateLabels();
   highlight(state.selected || state.hovered);
+  updateEmptyState();
+  renderClusterRegions();
+}
+// A filter or search that hides everything needs a visible way back (§8.4).
+function updateEmptyState() {
+  const box = $('#stage-empty');
+  if (!box) return;
+  let visible = 0;
+  for (const n of nodes) {
+    const g = nodeEls.get(n.id);
+    if (g && g.style.display !== 'none') { visible++; break; }
+  }
+  box.classList.toggle('show', visible === 0 && nodes.length > 0);
 }
 function matchSearch(n) {
   const q = state.search.trim().toLowerCase();
@@ -1094,6 +1253,8 @@ function applySearch() {
     line.style.display = hit ? '' : 'none';
   }
   updateLabels();
+  updateEmptyState();
+  renderClusterRegions();
 }
 
 // ---------------- side panels ----------------
@@ -1109,6 +1270,7 @@ function renderPanels() {
     row.querySelector('input').addEventListener('change', (ev) => {
       if (ev.target.checked) state.categories.add(c.key); else state.categories.delete(c.key);
       applyFilters();
+      fitView();
     });
     cat.appendChild(row);
   }
@@ -1126,6 +1288,7 @@ function renderPanels() {
     row.querySelector('input').addEventListener('change', (ev) => {
       if (ev.target.checked) state.edgeTypes.add(key); else state.edgeTypes.delete(key);
       applyFilters();
+      fitView();
     });
     et.appendChild(row);
   }
@@ -1146,8 +1309,8 @@ function renderPanels() {
     <div>依赖 <b>${s.required}</b> · 联动 <b>${s.optional}</b> · 冲突 <b>${s.incompatible}</b></div>
     <div>前置库 <b>${s.libraryMods}</b> · 枢纽 <b>${s.hubs}</b> · 孤立 <b>${s.isolated}</b></div>
     <div style="margin-top:6px;font-size:11px">节点大小 = 包内被依赖数 · 虚线 = 联动/可选 · 灰线 = 必需前置</div>
-    <div style="margin-top:8px;color:#6b6b66">被依赖最多</div>${hubs || '<div>—</div>'}
-    <div style="margin-top:8px;color:#6b6b66">孤立节点</div>${iso || '<div>—</div>'}`;
+    <div style="margin-top:8px;color:var(--ink-muted)">被依赖最多</div>${hubs || '<div>—</div>'}
+    <div style="margin-top:8px;color:var(--ink-muted)">孤立节点</div>${iso || '<div>—</div>'}`;
   $('#stats').querySelectorAll('.hubline').forEach(el => {
     el.addEventListener('click', () => {
       const n = nodeById.get(el.dataset.id);
@@ -1191,7 +1354,126 @@ function centerSelectedCompact() {
   applyView();
 }
 
+// ---------------- 主页介绍 & 中文翻译 ----------------
+const ZH_LIMIT = 700;       // 免费额度约 5000 字符/天，只译开头
+const ZH_CHUNK = 420;       // MyMemory 单次查询上限 500 字节
+
+function htmlToText(html) {
+  return String(html || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function isMostlyChinese(s) {
+  const cjk = (String(s).match(/[一-龥]/g) || []).length;
+  return cjk / Math.max(1, String(s).length) > 0.3;
+}
+
+function chunkText(text, max = ZH_CHUNK) {
+  const out = [];
+  let buf = '';
+  const push = (s) => { if (s.trim()) out.push(s.trim()); };
+  for (const para of String(text).split(/\n+/)) {
+    let s = para.trim();
+    if (!s) continue;
+    while (s.length > max) {
+      let cut = s.lastIndexOf('. ', max);
+      if (cut < max * 0.5) cut = s.lastIndexOf(' ', max);
+      if (cut <= 0) cut = max;
+      push(s.slice(0, cut + 1));
+      s = s.slice(cut + 1).trim();
+    }
+    if (!s) continue;
+    if ((buf ? buf.length + 1 : 0) + s.length > max) { push(buf); buf = s; }
+    else buf = buf ? buf + ' ' + s : s;
+  }
+  push(buf);
+  return out;
+}
+
+async function mmTranslate(text) {
+  const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=en%7Czh-CN';
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('翻译服务返回 ' + res.status);
+  const j = await res.json();
+  if (j.quotaFinished) throw new Error('今天的免费翻译额度用完了，明天再试');
+  const t = j.responseData && j.responseData.translatedText;
+  if (!t || j.responseStatus >= 400) throw new Error('翻译失败：' + (j.responseDetails || '空结果'));
+  return t;
+}
+
+async function fetchProjectBody(n) {
+  if (!n.slug) return '';
+  const res = await fetch('https://api.modrinth.com/v2/project/' + encodeURIComponent(n.slug));
+  if (!res.ok) return '';
+  const p = await res.json();
+  n.body = String(p.body || '').slice(0, 8000);
+  if (!n.description && p.description) n.description = p.description;
+  return n.body;
+}
+
+function zhCacheGet(id) {
+  try {
+    const raw = localStorage.getItem('modpack-studio:zh:' + id);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+function zhCacheSet(id, val) {
+  try { localStorage.setItem('modpack-studio:zh:' + id, JSON.stringify(val)); } catch (e) { /* ignore */ }
+}
+
+async function translateNode(n, btn, status) {
+  const cached = zhCacheGet(n.id);
+  if (cached) {
+    n.zhSummary = cached.s || '';
+    n.zhBody = cached.b || '';
+    return true;
+  }
+  btn.disabled = true;
+  if (!n.body && n.slug) {
+    status.textContent = '拉取主页 ...';
+    try { await fetchProjectBody(n); } catch (e) { /* ignore */ }
+  }
+  const summary = (n.description || '').trim();
+  const hasSummary = !!summary && !isMostlyChinese(summary);
+  const bodyText = htmlToText(n.body);
+  const bodyChunks = bodyText ? chunkText(bodyText.slice(0, ZH_LIMIT)) : [];
+  const chunks = (hasSummary ? [summary] : []).concat(bodyChunks);
+  if (!chunks.length) {
+    status.textContent = '没有可翻译的内容';
+    btn.disabled = false;
+    return false;
+  }
+  const out = [];
+  for (let i = 0; i < chunks.length; i++) {
+    status.textContent = `翻译中 ${i + 1}/${chunks.length}`;
+    try {
+      out.push(await mmTranslate(chunks[i]));
+    } catch (e) {
+      status.textContent = e.message || '翻译失败';
+      btn.disabled = false;
+      return false;
+    }
+    if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 700));
+  }
+  n.zhSummary = hasSummary ? out[0] : '';
+  n.zhBody = out.slice(hasSummary ? 1 : 0).join('\n\n');
+  zhCacheSet(n.id, {s: n.zhSummary, b: n.zhBody});
+  return true;
+}
+
 function renderDetail(n) {
+  const zh = zhCacheGet(n.id);
+  if (zh) { n.zhSummary = zh.s || ''; n.zhBody = zh.b || ''; }
   const directDeps = outMap.get(n.id) || [];
   const directDependents = inMap.get(n.id) || [];
   const trans = transitiveDeps(n.id);
@@ -1229,16 +1511,32 @@ function renderDetail(n) {
     <div class="detail-sub">${escapeHtml(n.version || '')} · ${escapeHtml(n.categoryLabel)} · 被依赖 ${n.inDegree} · 前置 ${n.outDegree}</div>
     <div class="chips">${chips} ${badges}</div>
     <div class="detail-desc">${escapeHtml(n.description || '')}</div>
+    ${n.zhSummary ? `<div class="detail-desc zh">${escapeHtml(n.zhSummary)}</div>` : ''}
     <div class="actions2">
       <button class="btn" id="focus-node">聚焦</button>
       <button class="btn" id="neighbors-only">只看邻居</button>
+      <button class="btn" id="zh-translate">译为中文</button>
+      <span class="zh-status" id="zh-status"></span>
       ${src}
     </div>
     <div class="section"><h3>直接前置（它依赖谁）</h3>${depItems(directDeps, false)}</div>
     <div class="section"><h3>被谁依赖</h3>${depItems(directDependents, true)}</div>
     <div class="section"><h3>前置的前置（传递闭包）</h3>${transItems}</div>
-    ${body ? `<div class="section"><h3>Modrinth 介绍</h3><div class="detail-body">${body}</div></div>` : ''}
+    <div class="section"><h3>主页介绍</h3>
+      ${n.zhBody ? `<div class="detail-body zh">${escapeHtml(n.zhBody)}</div><div class="zh-note">以上为中文翻译 · 原文见下</div>` : ''}
+      ${body ? `<div class="detail-body">${body}</div>` : '<div class="dep-item muted">暂无介绍；点「译为中文」会先从 Modrinth 拉取</div>'}
+    </div>
     <div class="section"><h3>文件</h3><div class="detail-sub" style="word-break:break-all">${escapeHtml(n.path || '')}</div></div>`;
+  const zhBtn = detail.querySelector('#zh-translate');
+  if (zhBtn) zhBtn.addEventListener('click', async () => {
+    const status = detail.querySelector('#zh-status');
+    const scroll = detail.scrollTop;
+    const ok = await translateNode(n, zhBtn, status);
+    if (ok) {
+      renderDetail(n);
+      detail.scrollTop = scroll;
+    }
+  });
   detail.querySelectorAll('.dep-item[data-id]').forEach(el => {
     el.addEventListener('click', () => {
       const other = nodeById.get(el.dataset.id);
@@ -1487,6 +1785,28 @@ async function buildImportedData(index, files, versions, projects, fileName) {
     }
   }
 
+  const deps = index.dependencies || {};
+  let loader = 'vanilla', loaderVersion = '';
+  for (const key of ['forge', 'neoforge', 'fabric-loader', 'quilt-loader']) {
+    if (deps[key]) {
+      loader = key === 'fabric-loader' ? 'fabric' : (key === 'quilt-loader' ? 'quilt' : key);
+      loaderVersion = deps[key];
+      break;
+    }
+  }
+
+  return finalizePack(nodes, edges, fileName, {
+    name: index.name || fileName,
+    version: index.versionId || '',
+    minecraft: deps.minecraft || '',
+    loader,
+    loaderVersion,
+    source: 'modrinth',
+  }, files.length);
+}
+
+// Shared by every importer: degrees, hubs, categories, stats, output shape.
+function finalizePack(nodes, edges, fileName, packMeta, fileCount) {
   for (const e of edges) {
     const s = nodes.get(e.source);
     const t = nodes.get(e.target);
@@ -1514,20 +1834,18 @@ async function buildImportedData(index, files, versions, projects, fileName) {
     categories.push({key: 'missing', label: '缺失前置', color: '#777777', count: catCounts.get('missing')});
   }
 
+  // 导入的包没有官方分类色：用一档暖灰把功能分组区分开，仍然只有黑白。
+  const CAT_RAMP = ['#26231d', '#38342c', '#4a463b', '#5c574a', '#6e6959',
+                    '#807a68', '#928c77', '#a49e86', '#b6b095', '#c8c2ae'];
+  categories.forEach((c, i) => { c.color = CAT_RAMP[i % CAT_RAMP.length]; });
+  const colorOf = new Map(categories.map(c => [c.key, c.color]));
+  for (const n of realNodes) n.color = colorOf.get(n.category) || '#777777';
+
   const edgeCounts = {};
   for (const e of edges) edgeCounts[e.type] = (edgeCounts[e.type] || 0) + 1;
   const hubs = realNodes.filter(n => n.hub).sort((a, b) => b.inDegree - a.inDegree).slice(0, 12);
   const isolated = realNodes.filter(n => n.isolated);
   const missing = realNodes.filter(n => n.missing);
-  const deps = index.dependencies || {};
-  let loader = 'vanilla', loaderVersion = '';
-  for (const key of ['forge', 'neoforge', 'fabric-loader', 'quilt-loader']) {
-    if (deps[key]) {
-      loader = key === 'fabric-loader' ? 'fabric' : (key === 'quilt-loader' ? 'quilt' : key);
-      loaderVersion = deps[key];
-      break;
-    }
-  }
 
   const hubData = hubs.map(n => ({id: n.id, label: n.label, nameZh: n.nameZh, inDegree: n.inDegree, category: n.category}));
   const isolatedData = isolated.map(n => ({id: n.id, label: n.label, nameZh: n.nameZh, category: n.category}));
@@ -1535,19 +1853,20 @@ async function buildImportedData(index, files, versions, projects, fileName) {
 
   return {
     pack: {
-      name: index.name || fileName,
-      version: index.versionId || '',
-      minecraft: deps.minecraft || '',
-      loader,
-      loaderVersion,
-      source: 'modrinth',
+      name: packMeta.name || fileName,
+      version: packMeta.version || '',
+      minecraft: packMeta.minecraft || '',
+      loader: packMeta.loader || 'vanilla',
+      loaderVersion: packMeta.loaderVersion || '',
+      source: packMeta.source || 'unknown',
+      author: packMeta.author || '',
       file: fileName,
     },
     nodes: realNodes,
     edges,
     categories,
     stats: {
-      files: files.length,
+      files: fileCount,
       nodes: realNodes.length,
       edges: edges.length,
       required: edgeCounts.required || 0,
@@ -1566,18 +1885,856 @@ async function buildImportedData(index, files, versions, projects, fileName) {
   };
 }
 
+// ---------------- CurseForge import ----------------
+const CF_API = 'https://api.curseforge.com/v1';
+// CurseForge relationType -> our edge type
+const CF_REL = {1: 'embedded', 2: 'optional', 3: 'required', 5: 'incompatible'};
+const CF_CATEGORY_RULES = [
+  [['library', 'api and library'], 'library'],
+  [['technology', 'tech', 'energy', 'redstone', 'automation', 'processing', 'ore', 'create'], 'technology'],
+  [['magic'], 'magic'],
+  [['adventure', 'exploration'], 'adventure'],
+  [['world gen', 'worldgen', 'biome', 'dimension', 'structure'], 'worldgen'],
+  [['decoration', 'cosmetic', 'furniture'], 'decoration'],
+  [['building'], 'building'],
+  [['storage', 'item transport', 'fluid'], 'storage'],
+  [['transport'], 'transportation'],
+  [['food', 'farming', 'agriculture'], 'food'],
+  [['equipment', 'armor', 'tool', 'weapon'], 'equipment'],
+  [['combat', 'mob', 'creature'], 'mobs'],
+  [['quest'], 'quests'],
+  [['game mechanics', 'mechanics'], 'game-mechanics'],
+  [['optimization', 'performance'], 'optimization'],
+  [['utility', 'map and information', 'management'], 'utility'],
+];
+
+function cfGetKey() {
+  try { return localStorage.getItem('modpack-studio:cf-key') || ''; } catch (e) { return ''; }
+}
+function cfSetKey(k) {
+  try { localStorage.setItem('modpack-studio:cf-key', k); } catch (e) { /* ignore */ }
+}
+function askForKey() {
+  const modal = $('#cf-modal');
+  const input = $('#cf-key-input');
+  input.value = cfGetKey();
+  modal.classList.add('show');
+  setTimeout(() => input.focus(), 40);
+  return new Promise(resolve => { cfKeyResolver = resolve; });
+}
+function closeKeyModal(value) {
+  $('#cf-modal').classList.remove('show');
+  const r = cfKeyResolver;
+  cfKeyResolver = null;
+  if (r) r(value);
+}
+var cfKeyResolver = null;
+
+async function cfFetch(path, init) {
+  const key = cfGetKey();
+  if (!key) throw new Error('缺少 CurseForge API Key');
+  const opts = init || {};
+  const res = await fetch(CF_API + path, {
+    method: opts.method || 'GET',
+    headers: Object.assign({'x-api-key': key, 'accept': 'application/json'}, opts.headers || {}),
+    body: opts.body,
+  });
+  if (res.status === 403) throw new Error('CurseForge 拒绝访问：API Key 无效或已过期');
+  if (res.status === 429) throw new Error('CurseForge 请求过于频繁，稍等一会再试');
+  if (!res.ok) throw new Error(`CurseForge ${path} 返回 ${res.status}`);
+  return res.json();
+}
+
+async function readCurseForgeManifest(zip) {
+  let f = zip.file('manifest.json');
+  if (!f) {
+    const hits = zip.file(/manifest\.json$/);
+    f = hits && hits[0];
+  }
+  if (!f) return null;
+  try {
+    const m = JSON.parse(await f.async('string'));
+    if (m && m.manifestType === 'minecraftModpack' && Array.isArray(m.files)) return m;
+  } catch (e) { /* not a CurseForge manifest */ }
+  return null;
+}
+
+async function cfFetchMods(ids) {
+  const uniq = [...new Set(ids)];
+  const out = [];
+  for (let i = 0; i < uniq.length; i += 50) {
+    const part = uniq.slice(i, i + 50);
+    const r = await cfFetch('/mods', {
+      method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify({modIds: part}),
+    });
+    out.push(...((r && r.data) || []));
+  }
+  return out;
+}
+
+async function cfFetchFiles(files, onProgress) {
+  const map = new Map();
+  const queue = files.slice();
+  let done = 0;
+  const worker = async () => {
+    for (;;) {
+      const f = queue.shift();
+      if (!f) return;
+      try {
+        const r = await cfFetch(`/mods/${f.projectID}/files/${f.fileID}`);
+        if (r && r.data) map.set(`${f.projectID}:${f.fileID}`, r.data);
+      } catch (e) {
+        if (String(e.message || '').includes('API Key')) throw e;
+      }
+      done++;
+      if (onProgress) onProgress(done, files.length);
+    }
+  };
+  await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
+  return map;
+}
+
+function cfCategory(names) {
+  const hay = (names || []).join(' ').toLowerCase();
+  for (const [words, key] of CF_CATEGORY_RULES) {
+    if (words.some(w => hay.includes(w))) {
+      const hit = IMPORT_CATEGORY_ORDER.find(([k]) => k === key);
+      return {key, label: hit ? hit[1] : '未分类'};
+    }
+  }
+  return {key: 'uncategorized', label: '未分类'};
+}
+
+function cfLoader(manifest) {
+  const list = (manifest.minecraft && manifest.minecraft.modLoaders) || [];
+  const primary = list.find(l => l.primary) || list[0];
+  const raw = (primary && primary.id) || '';
+  const m = raw.match(/^([a-z-]+)-(.+)$/);
+  if (!m) return {loader: 'vanilla', loaderVersion: ''};
+  const map = {'fabric': 'fabric', 'quilt': 'quilt', 'neoforge': 'neoforge'};
+  return {loader: map[m[1]] || 'forge', loaderVersion: m[2]};
+}
+
+function buildCurseForgeData(manifest, mods, details, fileName) {
+  const modById = new Map((mods || []).map(m => [m.id, m]));
+  const files = (manifest.files || []).filter(f => f && f.projectID);
+  const nodes = new Map();
+
+  for (const f of files) {
+    const id = `curseforge:${f.projectID}`;
+    if (nodes.has(id)) continue;
+    const p = modById.get(f.projectID) || null;
+    const catNames = ((p && p.categories) || []).map(c => c.name || '');
+    const cat = cfCategory(catNames);
+    const slug = (p && p.slug) || '';
+    const label = (p && p.name) || `项目 #${f.projectID}`;
+    nodes.set(id, {
+      id,
+      label,
+      projectId: String(f.projectID),
+      versionId: String(f.fileID || ''),
+      version: '',
+      categories: catNames.map(n => n.toLowerCase()),
+      category: cat.key,
+      categoryLabel: cat.label,
+      color: '#777777',
+      isLibrary: cat.key === 'library',
+      clientSide: null,
+      serverSide: null,
+      icon: (p && p.logo && p.logo.thumbnailUrl) || null,
+      description: (p && p.summary) || '',
+      body: '',
+      slug,
+      loaders: [],
+      downloads: (p && p.downloadCount) || 0,
+      sourceUrl: slug
+        ? `https://www.curseforge.com/minecraft/mc-mods/${slug}`
+        : `https://www.curseforge.com/projects/${f.projectID}`,
+      path: '',
+      url: '',
+      fileSize: 0,
+      nameZh: zhFor({slug}, label),
+      missing: false,
+      inDegree: 0,
+      outDegree: 0,
+    });
+  }
+
+  const edges = [];
+  const edgeKeys = new Set();
+  for (const f of files) {
+    const from = `curseforge:${f.projectID}`;
+    const d = details.get(`${f.projectID}:${f.fileID}`);
+    if (!d) continue;
+    for (const dep of (d.dependencies || [])) {
+      const type = CF_REL[dep.relationType];
+      if (!type) continue;
+      const to = `curseforge:${dep.modId}`;
+      if (to === from) continue;
+      if (!nodes.has(to)) {
+        if (type !== 'required') continue;
+        const p = modById.get(dep.modId) || null;
+        const slug = (p && p.slug) || '';
+        const depCats = ((p && p.categories) || []).map(c => c.name || '');
+        const depCat = cfCategory(depCats);
+        nodes.set(to, {
+          id: to, label: (p && p.name) || `缺失前置 #${dep.modId}`,
+          projectId: String(dep.modId), versionId: '', version: '',
+          categories: depCats.map(n => n.toLowerCase()), category: 'missing',
+          categoryLabel: '缺失前置', color: '#777777',
+          isLibrary: depCat.key === 'library', clientSide: null, serverSide: null,
+          icon: (p && p.logo && p.logo.thumbnailUrl) || null,
+          description: (p && p.summary) || '', body: '', slug, loaders: [], downloads: 0,
+          sourceUrl: slug ? `https://www.curseforge.com/minecraft/mc-mods/${slug}` : '',
+          path: '', url: '', fileSize: 0, nameZh: zhFor({slug}, ''),
+          missing: true, inDegree: 0, outDegree: 0,
+        });
+      }
+      const key = `${from}|${to}|${type}`;
+      if (edgeKeys.has(key)) continue;
+      edgeKeys.add(key);
+      edges.push({source: from, target: to, type});
+    }
+  }
+
+  return finalizePack(nodes, edges, fileName, {
+    name: manifest.name || fileName,
+    version: manifest.version || '',
+    minecraft: (manifest.minecraft && manifest.minecraft.version) || '',
+    ...cfLoader(manifest),
+    source: 'curseforge',
+    author: manifest.author || '',
+  }, files.length);
+}
+
+async function importCurseForge(manifest, fileName) {
+  const files = (manifest.files || []).filter(f => f && f.projectID);
+  if (!files.length) throw new Error('manifest.json 里没有可导入的 mod');
+  if (!cfGetKey()) {
+    const key = await askForKey();
+    if (!key) throw new Error('已取消导入');
+  }
+  setImportStatus(`CurseForge：查询 ${files.length} 个 mod ...`);
+  let mods = [];
+  try {
+    mods = await cfFetchMods(files.map(f => f.projectID));
+  } catch (err) {
+    if (String(err.message || '').includes('API Key')) {
+      const key = await askForKey();
+      if (!key) throw new Error('已取消导入');
+      mods = await cfFetchMods(files.map(f => f.projectID));
+    } else {
+      throw err;
+    }
+  }
+  setImportStatus(`查询依赖（0/${files.length}）...`);
+  const details = await cfFetchFiles(files, (done, total) => {
+    setImportStatus(`查询依赖（${done}/${total}）...`);
+  });
+  setImportStatus('整理依赖与分类 ...');
+  const data = buildCurseForgeData(manifest, mods, details, fileName);
+  if (!saveImportedRaw(data)) throw new Error('无法保存导入数据（存储空间不足）');
+  setImportStatus(`完成：${data.pack.name} · ${data.stats.nodes} 个节点`);
+  setTimeout(() => location.reload(), 350);
+}
+
+// ---------------- launcher / plain archive import (reads mods/*.jar) ----------------
+const JAR_BUILTIN_IDS = new Set([
+  'minecraft', 'java', 'fabricloader', 'fabric-loader', 'fabric_api', 'fabric-api',
+  'quilt_loader', 'quilt-loader', 'quilted_fabric_api', 'forge', 'neoforge',
+  'javafml', 'lowcodefml', 'openloader', 'mixinextras', 'mixin',
+]);
+
+function escapeRe(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function findPackBase(zip) {
+  const names = Object.keys(zip.files);
+  if (names.some(n => n === 'mods/' || n.startsWith('mods/'))) return '';
+  const tops = new Set();
+  for (const n of names) {
+    const m = n.match(/^([^/]+)\/mods\//);
+    if (m) tops.add(m[1] + '/');
+  }
+  return tops.size ? [...tops][0] : '';
+}
+
+function stripTomlComment(line) {
+  let out = '', q = null;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (q) {
+      out += c;
+      if (c === q && line[i - 1] !== '\\') q = null;
+      continue;
+    }
+    if (c === '"' || c === "'") { q = c; out += c; continue; }
+    if (c === '#') break;
+    out += c;
+  }
+  return out;
+}
+
+function unquote(v) {
+  const s = String(v).trim();
+  if (s.length >= 2 && s[0] === '"' && s[s.length - 1] === '"') {
+    try { return JSON.parse(s); } catch (e) { return s.slice(1, -1); }
+  }
+  if (s.length >= 2 && s[0] === "'" && s[s.length - 1] === "'") return s.slice(1, -1);
+  return s;
+}
+
+// Only the subset Forge/NeoForge use in META-INF/mods.toml.
+function parseForgeToml(text) {
+  const lines = String(text).split(/\r?\n/);
+  const mods = [];
+  const deps = [];
+  let cur = null, mode = null;
+  for (let i = 0; i < lines.length; i++) {
+    const t = stripTomlComment(lines[i]).trim();
+    if (!t) continue;
+    if (t.startsWith('[[')) {
+      const name = t.replace(/^\[\[/, '').replace(/\]\]\s*$/, '').trim();
+      if (name === 'mods') { cur = {}; mods.push(cur); mode = 'mods'; }
+      else if (name.startsWith('dependencies.')) {
+        cur = {owner: unquote(name.slice('dependencies.'.length))};
+        deps.push(cur); mode = 'deps';
+      } else { cur = null; mode = null; }
+      continue;
+    }
+    if (t.startsWith('[')) { cur = null; mode = null; continue; }
+    const eq = t.indexOf('=');
+    if (eq < 0) continue;
+    const key = t.slice(0, eq).trim();
+    let val = t.slice(eq + 1).trim();
+    if (val.startsWith("'''") || val.startsWith('"""')) {
+      const q = val.slice(0, 3);
+      let rest = val.slice(3);
+      while (rest.indexOf(q) < 0 && i + 1 < lines.length) { i++; rest += '\n' + lines[i]; }
+      val = rest.split(q)[0];
+    } else {
+      val = unquote(val);
+    }
+    if (cur) cur[key] = val;
+  }
+  return {mods, deps};
+}
+
+function forgeMeta(text) {
+  const {mods, deps} = parseForgeToml(text);
+  const first = mods[0] || {};
+  const id = first.modId || '';
+  const depends = {}, optional = {}, conflict = {};
+  for (const d of deps) {
+    if (d.owner !== id || !d.modId) continue;
+    const type = String(d.type || '').toLowerCase();
+    const mandatory = String(d.mandatory).toLowerCase() !== 'false';
+    if (type === 'incompatible') conflict[d.modId] = true;
+    else if (mandatory) depends[d.modId] = true;
+    else optional[d.modId] = true;
+  }
+  return {
+    id,
+    name: first.displayName || id,
+    version: first.version || '',
+    description: first.description || '',
+    depends, optional, conflict,
+  };
+}
+
+function fabricMeta(j) {
+  const depends = {}, optional = {}, conflict = {};
+  const add = (obj, bag) => { for (const k of Object.keys(obj || {})) bag[k] = true; };
+  add(j.depends, depends);
+  add(j.recommends, optional);
+  add(j.breaks, conflict);
+  return {
+    id: j.id || '',
+    name: j.name || j.id || '',
+    version: typeof j.version === 'string' ? j.version : '',
+    description: j.description || '',
+    depends, optional, conflict,
+  };
+}
+
+function quiltMeta(j) {
+  const q = j.quilt_loader || {};
+  const md = q.metadata || {};
+  const depends = {}, optional = {}, conflict = {};
+  const add = (arr, bag) => {
+    for (const d of (arr || [])) {
+      if (typeof d === 'string') bag[d] = true;
+      else if (d && d.id) bag[d.id] = true;
+    }
+  };
+  add(q.depends, depends);
+  add(q.recommends, optional);
+  add(q.breaks, conflict);
+  const v = typeof q.version === 'string' ? q.version : (q.version && q.version.version) || '';
+  return {
+    id: q.id || '',
+    name: md.name || q.id || '',
+    version: v,
+    description: md.description || '',
+    depends, optional, conflict,
+  };
+}
+
+function legacyMeta(j) {
+  const arr = Array.isArray(j) ? j : (j.modList || []);
+  const m = arr[0] || {};
+  const depends = {}, optional = {}, conflict = {};
+  for (const d of (m.dependencies || [])) depends[d] = true;
+  return {
+    id: m.modid || m.modId || '',
+    name: m.name || m.modid || '',
+    version: m.version || '',
+    description: m.description || '',
+    depends, optional, conflict,
+  };
+}
+
+async function readJarMeta(entry) {
+  const buf = await entry.async('uint8array');
+  const jar = await JSZip.loadAsync(buf);
+  let f = jar.file('fabric.mod.json');
+  if (f) return fabricMeta(JSON.parse(await f.async('string')));
+  f = jar.file('quilt.mod.json');
+  if (f) return quiltMeta(JSON.parse(await f.async('string')));
+  const toml = jar.file(/^META-INF\/(neoforge\.)?mods\.toml$/i);
+  if (toml && toml.length) return forgeMeta(await toml[0].async('string'));
+  f = jar.file('mcmod.info');
+  if (f) return legacyMeta(JSON.parse(await f.async('string')));
+  return null;
+}
+
+async function archivePackMeta(zip, fileName) {
+  let name = String(fileName).replace(/\.(zip|mrpack)$/i, '');
+  let loader = 'vanilla', loaderVersion = '', minecraft = '';
+
+  const mmc = zip.file(/(^|\/)mmc-pack\.json$/);
+  if (mmc && mmc.length) {
+    try {
+      const j = JSON.parse(await mmc[0].async('string'));
+      for (const c of (j.components || [])) {
+        const uid = c.uid || '';
+        if (uid === 'net.minecraft') minecraft = c.version || '';
+        else if (uid === 'net.minecraftforge') { loader = 'forge'; loaderVersion = c.version || ''; }
+        else if (uid === 'net.neoforged') { loader = 'neoforge'; loaderVersion = c.version || ''; }
+        else if (uid === 'net.fabricmc.fabric-loader') { loader = 'fabric'; loaderVersion = c.version || ''; }
+        else if (uid === 'org.quiltmc.quilt-loader') { loader = 'quilt'; loaderVersion = c.version || ''; }
+      }
+    } catch (e) { /* ignore */ }
+  }
+  const cfg = zip.file(/(^|\/)instance\.cfg$/);
+  if (cfg && cfg.length) {
+    const t = await cfg[0].async('string');
+    const m = t.match(/^\s*name\s*=\s*(.+)$/m);
+    if (m) name = m[1].trim();
+  }
+  const mp = zip.file(/(^|\/)modpack\.json$/);
+  if (mp && mp.length) {
+    try {
+      const j = JSON.parse(await mp[0].async('string'));
+      if (j.name) name = j.name;
+      if (j.version) name = `${name} ${j.version}`;
+    } catch (e) { /* ignore */ }
+  }
+  const cf = await readCurseForgeManifest(zip);
+  if (cf) {
+    if (cf.name) name = cf.name;
+    const mc = cf.minecraft || {};
+    if (mc.version) minecraft = mc.version;
+    const list = mc.modLoaders || [];
+    const primary = list.find(l => l.primary) || list[0];
+    const m = String((primary && primary.id) || '').match(/^([a-z-]+)-(.+)$/);
+    if (m) {
+      loader = ({fabric: 'fabric', quilt: 'quilt', neoforge: 'neoforge'})[m[1]] || 'forge';
+      loaderVersion = m[2];
+    }
+  }
+  return {name, loader, loaderVersion, minecraft, source: 'archive'};
+}
+
+// ---------------- parallel jar scanning (Web Workers running JSZip) ----------------
+// 实测：主线程 JSZip 解压 60 个 jar ≈ 550ms；纯异步并发反而更慢（JS 单线程）。
+// 真正提速只能靠 Worker：每个 worker 拿一份包副本，自己用 JSZip 解它那一份 jar。
+function jszipSource() {
+  const el = [...document.scripts].find(s => s.textContent && s.textContent.indexOf('JSZip') >= 0);
+  return el ? el.textContent : '';
+}
+
+async function metaFromJar(jar) {
+  let f = jar.file('fabric.mod.json');
+  if (f) return fabricMeta(JSON.parse(await f.async('string')));
+  f = jar.file('quilt.mod.json');
+  if (f) return quiltMeta(JSON.parse(await f.async('string')));
+  const toml = jar.file(/^META-INF\/(neoforge\.)?mods\.toml$/i);
+  if (toml && toml.length) return forgeMeta(await toml[0].async('string'));
+  f = jar.file('mcmod.info');
+  if (f) return legacyMeta(JSON.parse(await f.async('string')));
+  return null;
+}
+
+async function zhFromJar(jar, modId) {
+  const files = jar.file(/^assets\/[^/]+\/lang\/zh_cn\.json$/i) || [];
+  for (const f of files) {
+    try {
+      const j = JSON.parse(await f.async('string'));
+      const keys = [`itemGroup.${modId}`, `mod.${modId}.name`, `${modId}.name`, `itemGroup.${modId}.name`];
+      for (const k of keys) if (j[k] && /[\u4e00-\u9fa5]/.test(j[k])) return j[k];
+    } catch (e) { /* ignore */ }
+  }
+  return '';
+}
+
+async function sha1Hex(bytes) {
+  const h = await crypto.subtle.digest('SHA-1', bytes);
+  return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+const JAR_WORKER_BODY = `
+self.onmessage = async (ev) => {
+  const d = ev.data;
+  let zip;
+  try { zip = await JSZip.loadAsync(d.buffer); }
+  catch (e) { self.postMessage({fatal: String((e && e.message) || e)}); return; }
+  for (const job of d.jobs) {
+    let meta = null, sha1 = '', zh = '';
+    try {
+      const entry = zip.file(job.name);
+      if (entry) {
+        const bytes = await entry.async('uint8array');
+        try {
+          const h = await crypto.subtle.digest('SHA-1', bytes);
+          sha1 = [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('');
+        } catch (e) { /* no subtle */ }
+        const jar = await JSZip.loadAsync(bytes);
+        meta = await metaFromJar(jar);
+        if (meta && meta.id) zh = await zhFromJar(jar, meta.id);
+      }
+    } catch (e) { meta = null; }
+    self.postMessage({id: job.id, meta, sha1, zh});
+  }
+  self.postMessage({done: true});
+};
+`;
+
+function jarWorkerSource() {
+  const fns = [metaFromJar, zhFromJar, stripTomlComment, unquote, parseForgeToml,
+    forgeMeta, fabricMeta, quiltMeta, legacyMeta];
+  return jszipSource() + '\n' + fns.map(f => f.toString()).join('\n') + '\n' + JAR_WORKER_BODY;
+}
+
+// 返回 id -> {meta, sha1, zh}；worker 不可用或包太大时返回 null，交给主线程。
+async function scanJarsWithWorkers(buffer, names, onProgress) {
+  if (typeof Worker === 'undefined') return null;
+  const cores = navigator.hardwareConcurrency || 4;
+  const budget = 200e6; // 复制整包给 worker 的内存上限
+  const n = Math.max(1, Math.min(4, cores - 1, Math.floor(budget / Math.max(buffer.byteLength, 1))));
+  if (n < 2) return null;
+
+  const src = jarWorkerSource();
+  if (!src) return null;
+  const url = URL.createObjectURL(new Blob([src], {type: 'text/javascript'}));
+  const chunks = Array.from({length: n}, () => []);
+  names.forEach((name, i) => chunks[i % n].push({id: i, name}));
+
+  const results = new Map();
+  let finished = 0;
+  let pending = names.length;
+
+  await new Promise((resolve) => {
+    let left = n;
+    const done = () => { if (--left === 0) resolve(); };
+    for (let w = 0; w < n; w++) {
+      const worker = new Worker(url);
+      worker.onmessage = (ev) => {
+        const d = ev.data;
+        if (d.done || d.fatal) { worker.terminate(); done(); return; }
+        results.set(d.id, d);
+        pending--;
+        finished++;
+        if (onProgress && (finished % 5 === 0 || pending <= 0)) onProgress(finished, names.length);
+      };
+      worker.onerror = () => { worker.terminate(); done(); };
+      const copy = buffer.slice(0);
+      worker.postMessage({buffer: copy, jobs: chunks[w]}, [copy]);
+    }
+  });
+
+  URL.revokeObjectURL(url);
+  return results;
+}
+
+// 找出包里所有候补 jar，交给 worker 池或 JSZip 回退路径解析。
+async function scanPackJars(zip, buffer) {
+  const skipRe = /(^|\/)(libraries|versions|assets|natives|runtime|cosmic-module)\//i;
+  let names = (zip.file(/(^|\/)mods\/(?:[^/]+\/)*[^/]+\.jar$/i) || []).filter(f => f && !f.dir).map(f => f.name);
+  let loose = false;
+  if (!names.length) {
+    names = (zip.file(/\.jar$/i) || []).filter(f => f && !f.dir && !skipRe.test(f.name)).map(f => f.name);
+    loose = true;
+  }
+  names = names.slice(0, 600);
+  if (!names.length) return {items: [], loose, total: 0};
+
+  let results = null;
+  if (buffer) {
+    try {
+      results = await scanJarsWithWorkers(buffer, names, (d, t) => {
+        if (d % 5 === 0 || d >= t) setImportStatus(`读取 jar 元数据（${d}/${t}）...`);
+      });
+    } catch (e) {
+      console.warn('worker 扫描失败，回退主线程', e);
+      results = null;
+    }
+  }
+
+  if (!results) {
+    results = new Map();
+    setImportStatus(`读取 jar 元数据（0/${names.length}）...`);
+    for (let i = 0; i < names.length; i++) {
+      if (i % 5 === 0 || i === names.length - 1) {
+        setImportStatus(`读取 jar 元数据（${i + 1}/${names.length}）...`);
+      }
+      const entry = zip.file(names[i]);
+      let meta = null, sha1 = '', zh = '';
+      try {
+        const bytes = await entry.async('uint8array');
+        try { sha1 = await sha1Hex(bytes); } catch (e) { /* ignore */ }
+        const jar = await JSZip.loadAsync(bytes);
+        meta = await metaFromJar(jar);
+        if (meta && meta.id) zh = await zhFromJar(jar, meta.id);
+      } catch (e) { meta = null; }
+      results.set(i, {id: i, meta, sha1, zh});
+    }
+  }
+
+  const items = [];
+  for (let i = 0; i < names.length; i++) {
+    const r = results.get(i) || {};
+    if (r.meta && r.meta.id) items.push({path: names[i], meta: r.meta, sha1: r.sha1 || '', zh: r.zh || ''});
+    else if (!loose) items.push({path: names[i], meta: null, sha1: r.sha1 || '', zh: ''});
+  }
+  return {items, loose, total: names.length};
+}
+
+async function importArchive(zip, fileName, buffer) {
+  const scan = await scanPackJars(zip, buffer);
+  if (!scan.items.length) {
+    const names = Object.keys(zip.files);
+    if (scan.total > 0) {
+      throw new Error(`读到 ${scan.total} 个 jar，但没有一个带 mod 元数据（fabric.mod.json / mods.toml / mcmod.info）`);
+    }
+    const tops = [...new Set(names.filter(n => n.includes('/')).map(n => n.split('/')[0]))].slice(0, 6);
+    const sample = names.filter(n => !zip.files[n].dir).slice(0, 5);
+    throw new Error(
+      `没找到任何 jar（共 ${names.length} 个条目，顶层：${tops.join(' / ') || '（空）'}；` +
+      `示例：${sample.join('、') || '无'}）。支持 .mrpack、CurseForge 清单、含 mods/*.jar 的启动器导出。`
+    );
+  }
+
+  const packMeta = await archivePackMeta(zip, fileName);
+  const nodes = new Map();
+
+  for (const it of scan.items) {
+    const stem = it.path.split('/').pop().replace(/\.jar$/i, '');
+    const meta = it.meta || {id: stem, name: stem, version: '', description: '', depends: {}, optional: {}, conflict: {}};
+    const key = String(meta.id).toLowerCase();
+    if (nodes.has(`mod:${key}`)) continue;
+    const node = {
+      id: `mod:${key}`,
+      label: meta.name || meta.id,
+      projectId: null,
+      versionId: null,
+      version: meta.version || '',
+      categories: [],
+      category: 'uncategorized',
+      categoryLabel: '未分类',
+      color: '#777777',
+      isLibrary: false,
+      clientSide: null,
+      serverSide: null,
+      icon: null,
+      description: String(meta.description || '').replace(/<[^>]*>/g, '').slice(0, 400),
+      body: '',
+      slug: '',
+      loaders: [],
+      downloads: 0,
+      sourceUrl: '',
+      path: it.path,
+      url: '',
+      fileSize: 0,
+      nameZh: it.zh || '',
+      missing: false,
+      inDegree: 0,
+      outDegree: 0,
+      _sha1: it.sha1 || '',
+      _meta: meta,
+    };
+    nodes.set(`mod:${key}`, node);
+  }
+
+  setImportStatus('整理依赖 ...');
+  const edges = [];
+  const edgeKeys = new Set();
+  const addEdge = (from, to, type) => {
+    const k = `${from}|${to}|${type}`;
+    if (edgeKeys.has(k)) return;
+    edgeKeys.add(k);
+    edges.push({source: from, target: to, type});
+  };
+
+  for (const node of [...nodes.values()]) {
+    if (!node._meta) continue;
+    const key = node.id.slice(4);
+    const meta = node._meta;
+    const from = node.id;
+    const rels = [
+      [meta.depends, 'required'],
+      [meta.optional, 'optional'],
+      [meta.conflict, 'incompatible'],
+    ];
+    for (const [bag, type] of rels) {
+      for (const rawTarget of Object.keys(bag || {})) {
+        const target = String(rawTarget).toLowerCase();
+        if (!target || target === key) continue;
+        if (JAR_BUILTIN_IDS.has(target)) continue;
+        const to = `mod:${target}`;
+        if (!nodes.has(to)) {
+          if (type !== 'required') continue;
+          nodes.set(to, {
+            id: to, label: rawTarget, projectId: null, versionId: null, version: '',
+            categories: [], category: 'missing', categoryLabel: '缺失前置', color: '#777777',
+            isLibrary: false, clientSide: null, serverSide: null, icon: null,
+            description: '', body: '', slug: '', loaders: [], downloads: 0,
+            sourceUrl: '', path: '', url: '', fileSize: 0, nameZh: '',
+            missing: true, inDegree: 0, outDegree: 0,
+          });
+        }
+        addEdge(from, to, type);
+      }
+    }
+  }
+
+  await enrichFromModrinth(nodes);
+  for (const n of nodes.values()) { delete n._sha1; delete n._meta; }
+
+  const data = finalizePack(nodes, edges, fileName, packMeta, scan.total);
+  if (!saveImportedRaw(data)) throw new Error('无法保存导入数据（存储空间不足）');
+  setImportStatus(`完成：${data.pack.name} · ${data.stats.nodes} 个节点`);
+  setTimeout(() => location.reload(), 350);
+}
+
+// 用 jar 的 SHA-1 反查 Modrinth，补分类、图标、简介；查不到的保持原样。
+async function enrichFromModrinth(nodes) {
+  const byHash = new Map();
+  for (const n of nodes.values()) {
+    if (n._sha1 && !n.missing) byHash.set(n._sha1, n);
+  }
+  if (!byHash.size) return;
+  setImportStatus('按文件哈希查询 Modrinth ...');
+  const hashToProject = new Map();
+  const hashes = [...byHash.keys()];
+  try {
+    for (let i = 0; i < hashes.length; i += 500) {
+      const part = hashes.slice(i, i + 500);
+      const res = await fetch('https://api.modrinth.com/v2/version_files', {
+        method: 'POST',
+        headers: {'content-type': 'application/json'},
+        body: JSON.stringify({hashes: part, algorithm: 'sha1'}),
+      });
+      if (!res.ok) throw new Error('version_files ' + res.status);
+      const map = await res.json();
+      for (const h of Object.keys(map || {})) {
+        const pid = map[h] && map[h].project_id;
+        if (pid) hashToProject.set(h, pid);
+      }
+    }
+  } catch (e) {
+    console.warn('Modrinth 匹配失败', e);
+    return;
+  }
+  if (!hashToProject.size) return;
+
+  const pids = [...new Set(hashToProject.values())];
+  const projects = new Map();
+  try {
+    for (let i = 0; i < pids.length; i += 100) {
+      const part = pids.slice(i, i + 100);
+      const q = encodeURIComponent(JSON.stringify(part));
+      const res = await fetch(`https://api.modrinth.com/v2/projects?ids=${q}`);
+      if (!res.ok) throw new Error('projects ' + res.status);
+      for (const p of await res.json()) projects.set(p.id, p);
+    }
+  } catch (e) {
+    console.warn('Modrinth 项目查询失败', e);
+    return;
+  }
+
+  let hit = 0;
+  for (const [hash, node] of byHash) {
+    const p = projects.get(hashToProject.get(hash));
+    if (!p) continue;
+    hit++;
+    node.label = p.title || node.label;
+    node.categories = p.categories || [];
+    const cat = importPrimaryCategory(node.categories);
+    node.category = cat.key;
+    node.categoryLabel = cat.label;
+    node.isLibrary = node.categories.includes('library');
+    node.icon = p.icon_url || node.icon;
+    node.description = p.description || node.description;
+    node.body = String(p.body || '').slice(0, 8000);
+    node.slug = p.slug || '';
+    node.downloads = p.downloads || 0;
+    node.sourceUrl = p.slug ? `https://modrinth.com/mod/${p.slug}` : '';
+    node.nameZh = zhFor(p, node.label) || node.nameZh;
+  }
+  setImportStatus(`Modrinth 匹配到 ${hit}/${byHash.size} 个 mod`);
+}
+
 async function importPack(file) {
   if (!JSZip) throw new Error('ZIP 解析库未加载');
-  if (!/\.(mrpack|zip)$/i.test(file.name)) throw new Error('请选择 .mrpack 或 .zip');
+  // 不按扩展名筛：内容提供器给的文件名可能没有后缀，靠下面的魔数判断。
   setImportStatus(`读取 ${file.name} ...`);
-  const buffer = await file.arrayBuffer();
+  let buffer;
+  try {
+    buffer = await file.arrayBuffer();
+  } catch (e) {
+    throw new Error('系统没把文件交给页面（' + file.name + '）。把它复制到「下载」目录再试');
+  }
+  if (!buffer || buffer.byteLength === 0) throw new Error('这个文件是空的（0 字节）');
+  const sig = new Uint8Array(buffer, 0, Math.min(4, buffer.byteLength));
+  const hex = [...sig].map(b => b.toString(16).padStart(2, '0')).join('');
+  const isZip = sig[0] === 0x50 && sig[1] === 0x4b;
+  if (!isZip) {
+    if (sig[0] === 0x37 && sig[1] === 0x7a && sig[2] === 0xbc && sig[3] === 0xaf) {
+      throw new Error('这是 7z 压缩包，浏览器解不了。请转成 .zip 再导入');
+    }
+    if (sig[0] === 0x52 && sig[1] === 0x61 && sig[2] === 0x72) {
+      throw new Error('这是 RAR 压缩包，浏览器解不了。请转成 .zip 再导入');
+    }
+    throw new Error('不是 zip 文件（头 4 字节 ' + hex + '）。支持 .mrpack 和 .zip');
+  }
   const zip = await JSZip.loadAsync(buffer);
   let idxFile = zip.file('modrinth.index.json');
   if (!idxFile) {
     const candidates = zip.file(/modrinth\.index\.json$/);
     idxFile = candidates && candidates[0];
   }
-  if (!idxFile) throw new Error('目前只支持 Modrinth .mrpack（未找到 modrinth.index.json）');
+  if (!idxFile) {
+    const cfManifest = await readCurseForgeManifest(zip);
+    const jarRe = /(^|\/)mods\/(?:[^/]+\/)*[^/]+\.jar$/i;
+    const hasJars = (zip.file(jarRe) || []).length > 0;
+    // 包里带着 jar 就离线读，不必让用户配 API Key。
+    if (cfManifest && !hasJars) return importCurseForge(cfManifest, file.name);
+    return importArchive(zip, file.name, buffer);
+  }
   const index = JSON.parse(await idxFile.async('string'));
   const files = index.files || [];
 
@@ -1626,6 +2783,22 @@ $('#import-file').addEventListener('change', async (ev) => {
     setImportStatus('导入失败：' + (err && err.message ? err.message : err), true);
   }
 });
+$('#cf-key-ok').addEventListener('click', () => {
+  const v = $('#cf-key-input').value.trim();
+  if (!v) { $('#cf-key-input').focus(); return; }
+  cfSetKey(v);
+  closeKeyModal(v);
+});
+$('#cf-key-cancel').addEventListener('click', () => closeKeyModal(null));
+$('#cf-key-input').addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter') { ev.preventDefault(); $('#cf-key-ok').click(); }
+});
+$('#clear-cf-key').addEventListener('click', () => {
+  cfSetKey('');
+  setImportStatus('已清除 CurseForge API Key');
+  $('#clear-cf-key').style.display = 'none';
+});
+if (cfGetKey()) $('#clear-cf-key').style.display = 'block';
 $('#reset-import').addEventListener('click', () => {
   clearImportedRaw();
   location.reload();
@@ -1633,6 +2806,15 @@ $('#reset-import').addEventListener('click', () => {
 if (importedValid) $('#reset-import').style.display = 'block';
 document.querySelectorAll('[data-view],[data-view2]').forEach(btn => {
   btn.addEventListener('click', () => setView(btn.dataset.view || btn.dataset.view2));
+});
+$('#stage-empty-reset').addEventListener('click', () => {
+  state.search = '';
+  $('#search').value = '';
+  state.categories = new Set(RAW.categories.map(c => c.key));
+  state.hideIsolated = false;
+  const hideBox = $('#hide-isolated');
+  if (hideBox) hideBox.checked = false;
+  setView('all');
 });
 function setView(v) {
   state.view = v;
