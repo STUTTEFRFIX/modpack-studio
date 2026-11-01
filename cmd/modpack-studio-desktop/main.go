@@ -25,6 +25,9 @@ func openBrowser(url string) error {
 	}
 }
 
+// version 与 android/AndroidManifest.xml 的 versionName 保持一致
+const version = "0.4.1-tree-svg"
+
 func main() {
 	noBrowser := flag.Bool("no-browser", false, "do not open a browser")
 	port := flag.Int("port", 0, "listen port (0 = random)")
@@ -55,7 +58,7 @@ func main() {
 	}()
 
 	url := "http://" + ln.Addr().String() + "/"
-	fmt.Println("Modpack Studio 0.2.1-import")
+	fmt.Println("Modpack Studio " + version)
 	fmt.Println("URL:", url)
 	fmt.Println("Press Ctrl+C to stop.")
 	if !*noBrowser {
