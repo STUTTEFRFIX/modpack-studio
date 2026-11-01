@@ -259,6 +259,9 @@
     font-family:var(--font-mono);font-size:11px;letter-spacing:.03em}
   .btn:hover{background:var(--paper-2);border-color:var(--ink)}
   .btn.active{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+  .modeswitch{display:inline-flex}
+  .modeswitch .btn{border-radius:0;padding:7px 10px}
+  .modeswitch .btn+.btn{border-left:none}
   /* One primary action per page: 导入 is the only filled control. */
   .btn.primary{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:500}
   .btn.primary:hover{background:var(--ink-soft);border-color:var(--ink-soft);color:var(--paper)}
@@ -288,6 +291,23 @@
   }
   #stage::before{content:"";position:absolute;inset:9px;border:1px solid rgba(27,26,23,.14);
     pointer-events:none;z-index:2}
+  /* 树视图：和图共用同一份数据，只是换成纵向排布 */
+  /* 树视图：节点-连线，和图共用同一个 viewport */
+  #stage.tree #legend{display:none}
+  #stage.tree #stage-empty{display:none!important}
+  .tree-link{fill:none;stroke:var(--rule-strong);stroke-width:1;opacity:.85}
+  .tree-node{cursor:pointer}
+  .tree-node circle{fill:var(--paper);stroke:var(--ink-soft);stroke-width:1.1}
+  .tree-node text{font-family:var(--font-sans);font-size:11px;fill:var(--ink-soft);
+    paint-order:stroke;stroke:var(--paper);stroke-width:3px;stroke-linejoin:round}
+  .tree-node.cat circle{stroke:var(--ink);stroke-width:1.5}
+  .tree-node.cat text{font-family:var(--font-serif);font-size:12.5px;font-weight:600;fill:var(--ink)}
+  .tree-node.root circle{fill:var(--ink);stroke:var(--ink)}
+  .tree-node.root text{font-family:var(--font-serif);font-size:14px;font-weight:700;fill:var(--ink)}
+  .tree-node.mod text{font-size:10.5px}
+  .tree-node:hover text{fill:var(--ink)}
+  .tree-node.sel text{fill:var(--ink);font-weight:600}
+  .tree-node.sel circle{stroke:var(--ink);stroke-width:2}
   #figure-caption{position:absolute;left:18px;top:15px;z-index:5;pointer-events:none;
     font-family:var(--font-mono);font-size:9px;letter-spacing:.16em;color:var(--ink-muted);text-transform:uppercase;
     background:rgba(247,244,234,.88);padding:2px 5px}
@@ -463,6 +483,10 @@
     <div class="search"><input id="search" placeholder="搜索 mod / 中文名 / 分类 / 前置..." autocomplete="off"></div>
     <div class="actions">
       <button class="btn mobile-only" id="toggle-left">筛选</button>
+      <div class="modeswitch">
+        <button class="btn mode active" data-mode="graph">图</button>
+        <button class="btn mode" data-mode="tree">树</button>
+      </div>
       <button class="btn primary" id="import-btn">导入</button>
       <button class="btn" id="fit">适配</button>
       <button class="btn" id="relayout">重排</button>
@@ -588,6 +612,9 @@ const state = {
   isolatedOnly: false,
   view: 'all',
   neighborOnly: false,
+  mode: 'graph',
+  treeInited: false,
+  treeOpen: new Set(),
 };
 
 const nodes = RAW.nodes.map((n, i) => ({
@@ -779,6 +806,9 @@ const regionLayer = document.createElementNS(NS, 'g');
 const clusterLayer = document.createElementNS(NS, 'g');
 const edgesLayer = document.createElementNS(NS, 'g');
 const nodesLayer = document.createElementNS(NS, 'g');
+const treeLayer = document.createElementNS(NS, 'g');
+treeLayer.style.display = 'none';
+viewport.appendChild(treeLayer);
 viewport.appendChild(regionLayer);
 viewport.appendChild(clusterLayer);
 viewport.appendChild(edgesLayer);
@@ -1211,6 +1241,7 @@ function applyFilters() {
   highlight(state.selected || state.hovered);
   updateEmptyState();
   renderClusterRegions();
+  if (state.mode === 'tree') buildTreeSvg();
 }
 // A filter or search that hides everything needs a visible way back (§8.4).
 function updateEmptyState() {
@@ -1243,6 +1274,7 @@ function applySearch() {
   updateLabels();
   updateEmptyState();
   renderClusterRegions();
+  if (state.mode === 'tree') buildTreeSvg();
 }
 
 // ---------------- side panels ----------------
@@ -2742,12 +2774,197 @@ async function importPack(file) {
   setTimeout(() => location.reload(), 350);
 }
 
+// ---------------- tree view ----------------
+// 真正的节点-连线树：根在左，分类向右分叉，mod 是叶子。
+// 布局用「叶子先占位、父节点取中点」，保证任何子树都不重叠。
+function treeVisible(n) {
+  if (!nodeVisible(n)) return false;
+  return !state.search.trim() || matchSearch(n);
+}
+
+function buildTreeModel() {
+  const visible = nodes.filter(treeVisible);
+  const byCat = new Map();
+  for (const n of visible) {
+    if (!byCat.has(n.category)) byCat.set(n.category, []);
+    byCat.get(n.category).push(n);
+  }
+  const root = {id: '__root', label: RAW.pack.name, depth: 0, kind: 'root', kids: []};
+  const cats = RAW.categories
+    .filter(c => byCat.has(c.key))
+    .map(c => ({key: c.key, label: c.label, color: c.color,
+      list: byCat.get(c.key).sort((a, b) => b.inDegree - a.inDegree || b.degree - a.degree)}))
+    .sort((a, b) => b.list.length - a.list.length);
+  for (const c of cats) {
+    const id = 'cat:' + c.key;
+    const open = state.treeOpen.has(id);
+    const cat = {id, label: c.label, depth: 1, kind: 'cat', color: c.color, count: c.list.length, open, kids: []};
+    if (open) {
+      for (const n of c.list) {
+        cat.kids.push({id: 'mod:' + n.id, label: n.label, zh: n.nameZh, node: n, depth: 2, kind: 'mod', kids: []});
+      }
+    }
+    root.kids.push(cat);
+  }
+  return root;
+}
+
+function layoutTree(root) {
+  let cursor = 0;
+  const gapLeaf = 20;
+  const gapCat = 26;
+  (function walk(n) {
+    if (!n.kids.length) {
+      n.y = cursor;
+      cursor += (n.depth === 1 ? gapCat : gapLeaf);
+      return;
+    }
+    for (const k of n.kids) walk(k);
+    n.y = (n.kids[0].y + n.kids[n.kids.length - 1].y) / 2;
+  })(root);
+  const total = cursor;
+  const step = [0, 180, 430];
+  (function setX(n) {
+    n.x = n.depth < step.length ? step[n.depth] : step[step.length - 1] + (n.depth - step.length + 1) * 240;
+    n.y -= total / 2;
+    for (const k of n.kids) setX(k);
+  })(root);
+  return root;
+}
+
+function treeAllNodes(root) {
+  const out = [];
+  (function walk(n) { out.push(n); n.kids.forEach(walk); })(root);
+  return out;
+}
+
+function buildTreeSvg() {
+  treeLayer.innerHTML = '';
+  const root = layoutTree(buildTreeModel());
+  const all = treeAllNodes(root);
+  state.treeModel = root;
+
+  for (const n of all) {
+    for (const k of n.kids) {
+      const p = document.createElementNS(NS, 'path');
+      const mx = (n.x + k.x) / 2;
+      p.setAttribute('class', 'tree-link');
+      p.setAttribute('d', `M${n.x},${n.y} C${mx},${n.y} ${mx},${k.y} ${k.x},${k.y}`);
+      treeLayer.appendChild(p);
+    }
+  }
+
+  for (const n of all) {
+    const g = document.createElementNS(NS, 'g');
+    g.setAttribute('class', 'tree-node ' + n.kind + (state.selected && n.node && state.selected === n.node.id ? ' sel' : ''));
+    g.setAttribute('transform', `translate(${n.x},${n.y})`);
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('r', n.kind === 'root' ? 6 : n.kind === 'cat' ? 4.5 : 2.6);
+    if (n.kind === 'cat' && n.color) c.setAttribute('fill', n.color);
+    g.appendChild(c);
+
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', 10);
+    t.setAttribute('dy', '0.35em');
+    const mark = n.kind === 'cat' ? (n.open ? '▾ ' : '▸ ') : '';
+    t.textContent = mark + n.label + (n.zh ? '  ' + n.zh : '');
+    if (n.kind === 'cat') t.textContent += `  ${n.count}`;
+    g.appendChild(t);
+
+    if (n.kind === 'cat') {
+      g.addEventListener('click', () => toggleTree(n.id));
+    } else if (n.kind === 'mod' && n.node) {
+      g.addEventListener('click', () => { selectNode(n.node.id); buildTreeSvg(); });
+    }
+    treeLayer.appendChild(g);
+  }
+}
+
+function toggleTree(id) {
+  const before = treeScreenPos(id);
+  if (state.treeOpen.has(id)) state.treeOpen.delete(id);
+  else state.treeOpen.add(id);
+  buildTreeSvg();
+  const after = treeScreenPos(id);
+  if (before && after) {
+    // 让被点的那一枝停在同一屏幕位置，不要整棵树乱跳
+    view.x += before.x - after.x;
+    view.y += before.y - after.y;
+    applyView();
+  }
+}
+
+function treeNodeById(id) {
+  if (!state.treeModel) return null;
+  return treeAllNodes(state.treeModel).find(n => n.id === id) || null;
+}
+
+function treeScreenPos(id) {
+  const n = treeNodeById(id);
+  if (!n) return null;
+  return {x: n.x * view.k + view.x, y: n.y * view.k + view.y};
+}
+
+function fitTree(force) {
+  if (!state.treeModel) return;
+  const all = treeAllNodes(state.treeModel);
+  if (!all.length) return;
+  const xs = all.map(n => n.x), ys = all.map(n => n.y);
+  const minX = Math.min(...xs) - 30, maxX = Math.max(...xs) + 220;
+  const minY = Math.min(...ys) - 30, maxY = Math.max(...ys) + 30;
+  const w = stage.clientWidth, h = stage.clientHeight;
+  const fitK = Math.min(w / (maxX - minX), h / (maxY - minY)) * 0.94;
+  if (force) {
+    view.k = Math.max(0.1, Math.min(2.4, fitK));
+    view.x = w / 2 - (minX + maxX) / 2 * view.k;
+    view.y = h / 2 - (minY + maxY) / 2 * view.k;
+  } else {
+    // 95 个叶子整体缩到 0.3 时字只有 3px；先给能读的缩放，从左上角（根）开始读，
+    // 想要全貌再点「适配」。
+    view.k = Math.max(0.8, Math.min(2.2, fitK));
+    view.x = 30 - minX * view.k;
+    view.y = 30 - minY * view.k;
+  }
+  applyView();
+}
+
+function setMode(m) {
+  state.mode = m;
+  document.querySelectorAll('[data-mode]').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === m);
+  });
+  const stage = $('#stage');
+  if (stage) stage.classList.toggle('tree', m === 'tree');
+  const cap = $('#figure-caption');
+  if (cap) cap.textContent = m === 'tree' ? 'FIG. 01 — MOD TAXONOMY' : 'FIG. 01 — MOD DEPENDENCY GRAPH';
+  const tree = m === 'tree';
+  for (const layer of [regionLayer, clusterLayer, edgesLayer, nodesLayer]) {
+    layer.style.display = tree ? 'none' : '';
+  }
+  treeLayer.style.display = tree ? '' : 'none';
+  if (tree) {
+    if (!state.treeInited) {
+      for (const c of RAW.categories) state.treeOpen.add('cat:' + c.key);
+      state.treeInited = true;
+    }
+    buildTreeSvg();
+    fitTree();
+  } else {
+    applyView();
+    layoutStatic();
+    fitView();
+  }
+}
+
 // ---------------- controls ----------------
 $('#search').addEventListener('input', (ev) => {
   state.search = ev.target.value;
   applySearch();
 });
-$('#fit').addEventListener('click', () => fitView());
+document.querySelectorAll('[data-mode]').forEach(btn => {
+  btn.addEventListener('click', () => setMode(btn.dataset.mode));
+});
+$('#fit').addEventListener('click', () => { if (state.mode === 'tree') fitTree(true); else fitView(); });
 function relayout() {
   recomputeCenters();
   initPositions();

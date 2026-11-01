@@ -1,6 +1,6 @@
 # 交接文档 / Handover
 
-> 版本：0.3.3-zh  
+> 版本：0.4.1-tree-svg  
 > 目标读者：接手维护、发版或继续开发的人。  
 > 先读 README 了解产品，再读本文了解实现与坑。
 
@@ -15,6 +15,9 @@
 - 桌面 / 手机竖屏 / 手机横屏三套布局
 - 浏览器内导入 Modrinth `.mrpack`
 - 浏览器内导入 CurseForge `.zip`（需要用户自己的 API Key）
+- 启动器导出 / 带 `mods/*.jar` 的 zip 离线解析（Fabric / Quilt / Forge / NeoForge / 老版本 mcmod.info）
+- 图 / 树两种视图切换（同一份数据，两种排布）
+- 按 SHA-1 反查 Modrinth 补分类与译名；主页介绍一键译成中文
 - Android APK（WebView + 系统文件选择器 + 应用私有存储）
 - Windows EXE（本地 HTTP 服务 + 默认浏览器）
 - Go 版格式识别与清单解析 CLI
@@ -22,7 +25,7 @@
 
 未完成：
 
-- CurseForge / MCBBS / MultiMC / packwiz 的运行时导入
+- MCBBS / packwiz 的运行时导入（清单型包没有 jar 可读）
 - 编辑、更新、卸载、导出
 - 导入数据与 Go 核心的统一
 - Windows 实机验证
@@ -183,6 +186,21 @@ cmd/modpack-studio
 只有分类标签还看得见（它们在 `clusterLayer`，不在 `.node` 里）。
 现在用 `matchMedia('(hover: hover) and (pointer: fine)')` 区分设备，触屏不做 hover 高亮，
 拖动时也会清掉残留状态。
+
+### 5.1.5.1 树视图
+
+- 顶部「图 / 树」切换，两种视图**共用同一个 SVG viewport**，各自是独立 `<g>`：
+  `treeLayer` 与 `regionLayer/clusterLayer/edgesLayer/nodesLayer`，`setMode()` 只切 `display`；
+- 树是真正的节点-连线树（不是缩进列表）：根在左，分类向右分叉，mod 是叶子，
+  连线用三次贝塞尔 `M x0,y0 C mx,y0 mx,y1 x1,y1`；
+- 布局「叶子先占位、父节点取中点」：叶子按 20px 依次占 y，分类 y = 首尾子节点均值，
+  所以任何子树都不可能重叠，也不需要迭代；x 按层固定（0 / 180 / 430）；
+- `state.treeOpen` 存展开的分类（`cat:<key>`）；展开/收起后重排，
+  但会把被点的分类补偿回原来的屏幕位置，避免整棵树乱跳；
+- 叶子太多（95 个时总高约 2000px）整体缩放会掉到 0.3，字只剩 3px，
+  所以首次进入用 `max(0.8, fitK)` 从左上角开始读；点「适配」才做真正的全貌适配；
+- 筛选/搜索同样作用于树，`applyFilters` / `applySearch` 末尾会重建；
+- 树里点 mod 走 `selectNode()`，右侧详情面板同步。
 
 ### 5.1.6 主页介绍与中文翻译
 
